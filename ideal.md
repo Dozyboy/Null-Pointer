@@ -1,4 +1,4 @@
-# MediFlow AI - Nền tảng AI điều phối và tối ưu hành trình khám bệnh thông minh
+đánh # MediFlow AI - Nền tảng AI điều phối và tối ưu hành trình khám bệnh thông minh
 
 ## 1. Phân tích tính hợp lý của ý tưởng
 
