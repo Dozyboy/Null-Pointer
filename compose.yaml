@@ -1,0 +1,32 @@
+services:
+  ai:
+    build:
+      context: ./ai
+    ports:
+      - "8010:8010"
+    environment:
+      AI_ENV: development
+      AI_MODEL_PROVIDER: rule_based
+      AI_MODEL_VERSION: route-ranker-v1
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: development
+      AI_SERVICE_URL: http://ai:8010
+      CORS_ORIGINS: '["http://localhost:5173"]'
+    depends_on:
+      - ai
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend

@@ -1,0 +1,17 @@
+name: nhip-vien-ai-strict
+level: strict
+allowed_operations:
+  - rank_prevalidated_routes
+  - estimate_wait_window
+blocked_operations:
+  - create_clinical_order
+  - change_clinical_priority
+  - write_hospital_database
+  - confirm_reservation
+  - disclose_patient_identity
+require_human_approval:
+  - apply_reroute_to_patient
+max_candidates_per_request: 50
+max_requests_per_minute: 120
+fail_closed: true
+audit_enabled: true

@@ -1,0 +1,11 @@
+route_optimizer:
+  provider: rule_based
+  model_version: route-ranker-v1
+  timeout_seconds: 5
+  fallback: keep_current_plan
+
+wait_time_estimator:
+  provider: rule_based
+  model_version: queue-window-v1
+  timeout_seconds: 2
+  fallback: return_unavailable

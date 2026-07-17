@@ -1,0 +1,37 @@
+# Hệ điều hành và trình soạn thảo
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# GitNexus tạo chỉ mục cục bộ, không đưa cơ sở dữ liệu đồ thị vào Git
+.gitnexus/
+
+# JavaScript / React
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Biến môi trường và dữ liệu nhạy cảm
+.env
+.env.*
+!.env.example
+
+# Cơ sở dữ liệu và tệp chạy cục bộ
+*.db
+*.sqlite
+*.sqlite3
+logs/
+tmp/
