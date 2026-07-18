@@ -17,6 +17,7 @@
 - [Bộ giả lập dữ liệu cận lâm sàng](development/hospital-data-simulator.md).
 - [Thuật toán phân luồng bệnh nhân](development/routing-algorithm.md).
 - [Tích hợp giao diện bệnh nhân với backend](development/patient-flow-integration.md).
+- [Báo cáo rà soát chức năng và dữ liệu](development/project-audit-2026-07-18.md).
 - [Quy trình GitNexus](development/gitnexus-workflow.md).
 
 ## Thứ tự đọc đề xuất

@@ -68,7 +68,7 @@ Không gắn ổ đĩa lưu bền vững thì tệp SQLite có thể bị mất 
 Khi dựng frontend, đặt địa chỉ API của backend cloud:
 
 ```env
-VITE_API_URL=https://api-nhip-vien.example.com/api/v1
+VITE_API_URL=https://nhip-vien-backend-845428428754.asia-east1.run.app/api/v1
 ```
 
 Frontend phải được dựng lại sau khi đổi `VITE_API_URL` vì đây là biến cấu hình được đưa vào gói giao diện lúc dựng.

@@ -20,6 +20,10 @@ class CreateSupportRequest(BaseModel):
 
 class SupportRequestResponse(BaseModel):
     id: str
+    encounter_id: str
+    support_type: SupportType
+    location: str
+    note: str | None
     status: str
     is_demo: bool
     estimated_response_minutes_min: int

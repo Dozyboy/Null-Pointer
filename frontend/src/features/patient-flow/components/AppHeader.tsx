@@ -47,12 +47,12 @@ export function AppHeader({
 
         {/* Title */}
         <div className="flex-1 text-center">
-          <p
+          <h1
             className={`truncate ${isPrimary ? "text-white" : "text-foreground"}`}
             style={{ fontSize: 16 }}
           >
             {title}
-          </p>
+          </h1>
           {subtitle && (
             <p
               className={`truncate ${isPrimary ? "text-white/70" : "text-muted-foreground"}`}

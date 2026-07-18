@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
-import PatientFlowPage from '../features/patient-flow/pages/PatientFlowPage'
+import { NotFoundPage } from '../shared/ui/NotFoundPage'
+
+const PatientFlowPage = lazy(() => import('../features/patient-flow/pages/PatientFlowPage'))
 
 const SimulationPage = lazy(() =>
   import('../features/demo-simulation/pages/SimulationPage').then((module) => ({
@@ -15,6 +17,10 @@ const ClinicalServiceCatalogPage = lazy(() =>
 )
 
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Navigate to="/demo/simulator" replace />,
+  },
   {
     path: '/demo/order-dispatch',
     element: <Navigate to="/demo/simulator?tab=orders" replace />,
@@ -33,7 +39,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/demo/patient/:patientCode',
-    element: <PatientFlowPage />,
+    element: (
+      <Suspense fallback={<p className="standalone-error">Đang tải ứng dụng bệnh nhân…</p>}>
+        <PatientFlowPage />
+      </Suspense>
+    ),
   },
   {
     path: '/demo/hospital-data',
@@ -43,7 +53,7 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
-  { path: '*', element: <PatientFlowPage /> },
+  { path: '*', element: <NotFoundPage /> },
 ])
 
 export function AppRouter() {

@@ -2,61 +2,53 @@
 
 ## 1. Nguồn giao diện chuẩn
 
-Thư mục `giaodien/` là mốc đối chiếu trực quan. Mã sản xuất nằm trong:
+Thư mục `giaodien/` là mốc đối chiếu trực quan, không phải mã chạy. Mã sản xuất nằm trong:
 
-- `frontend/src/features/patient-flow/`: 17 thành phần màn hình được chuyển từ nguyên mẫu.
-- `frontend/src/features/patient-flow/api/`: lớp gọi API backend.
-- `frontend/src/features/patient-flow/model/`: kiểu dữ liệu dùng xuyên suốt luồng.
-
-Không sửa trực tiếp `giaodien/` để kết nối backend. Khi Figma Make thay đổi, cần đối chiếu rồi chuyển thay đổi vào `frontend/`.
+- `frontend/src/features/patient-flow/`: toàn bộ luồng bệnh nhân.
+- `frontend/src/features/demo-simulation/`: màn hình máy tính dùng tạo dữ liệu demo.
+- `frontend/src/entities/`: hợp đồng bệnh nhân, chỉ định và nhật ký dùng chung.
 
 **API — giao diện lập trình ứng dụng** là hợp đồng để frontend gửi yêu cầu và nhận dữ liệu từ backend.
 
 ## 2. Chức năng đã kết nối
 
-| Chức năng giao diện | API | Trạng thái |
+| Chức năng | Nguồn backend | Trạng thái |
 |---|---|---|
-| Chọn chiến lược lịch và ưu tiên lộ trình | `POST /api/v1/encounters/{encounter_id}/route-proposals` | Đã kết nối |
-| Hiển thị tối đa ba phương án động | Cùng API tạo phương án | Đã kết nối |
-| Giữ chỗ hai phút | `POST /api/v1/route-reservations` | Đã kết nối |
-| Gia hạn giữ chỗ | `POST /api/v1/route-reservations/{id}/extend` | Đã kết nối, tối đa một lần trong bản demo |
-| Xác nhận và tạo mã hành trình | `POST /api/v1/route-reservations/{id}/confirm` | Đã kết nối và chống xác nhận lặp |
-| Gọi nhân viên, xe lăn, chỉ đường, hỗ trợ thị giác | `POST /api/v1/support-requests` | Đã kết nối |
-| Trạng thái phòng và hàng chờ | `/api/v1/simulation/*` | Đã dùng làm đầu vào thuật toán |
+| Quét QR và đọc hồ sơ bệnh nhân | `GET /api/v1/patients/{patient_id}` | Hoạt động, dữ liệu SQLite |
+| Nhận chỉ định mới nhất | `GET /api/v1/simulation/patients/{patient_code}/clinical-orders/latest` | Hoạt động, tự tải lại 3 giây/lần |
+| Tạo chỉ định từ hệ thống giả lập | `POST /api/v1/simulation/clinical-orders` | Hoạt động, lưu SQLite |
+| Chọn bệnh nhân, dịch vụ và phòng phù hợp | Danh mục, phòng và hàng chờ mô phỏng | Hoạt động |
+| Tính ba phương án lộ trình | `POST /api/v1/encounters/{encounter_id}/route-proposals` | Hoạt động bằng thuật toán xác định |
+| Tính lại phần chưa hoàn thành | `POST .../latest/route-proposals` | Hoạt động theo phòng, hàng chờ và chế độ hiện tại |
+| Giữ chỗ, gia hạn và xác nhận | `/api/v1/route-reservations/*` | Hoạt động, chống xác nhận lặp |
+| Khôi phục hành trình sau khi tải lại | `GET .../patients/{patient_code}/latest` | Hoạt động, lưu SQLite |
+| Bấm “Tôi đã khám xong” | `PATCH .../{reservation_id}/progress` | Hoạt động, có hộp thoại xác nhận |
+| Hoạt động hôm nay và thông báo | `GET /api/v1/patients/{patient_code}/activities/today` | Dùng nhật ký thật của thao tác trong hệ thống |
+| Gửi yêu cầu nhân viên, xe lăn, chỉ đường | `POST /api/v1/support-requests` | Hoạt động, lưu SQLite |
 
-**Chống xác nhận lặp** nghĩa là gửi lại cùng yêu cầu không tạo thêm một hành trình mới.
+**SQLite — cơ sở dữ liệu dạng tệp** là nơi backend lưu dữ liệu demo để không mất khi khởi động lại.
 
-## 3. Quy tắc an toàn đang áp dụng
+## 3. Phần cố ý mô phỏng
 
-- Frontend gửi riêng `schedule_strategy` và `priority`.
-- Backend kiểm tra phương án có thuộc đúng đề xuất, đúng lượt khám và còn hạn trước khi giữ chỗ.
-- Thời gian đếm ngược lấy từ `expires_at` của backend.
-- Xác nhận được xử lý trong khóa đồng thời để tránh tạo hai hành trình.
-- Phương án hết hạn hoặc không tồn tại trả lỗi rõ ràng, không tự tạo phương án thay thế.
+- Danh sách bệnh nhân ban đầu là dữ liệu mẫu được nạp vào SQLite.
+- Bệnh nhân tạm, sự kiện và đồng hồ của kịch bản “Tiến mô phỏng 5 phút” chỉ nằm trong bộ nhớ tiến trình.
+- Bản đồ là sơ đồ minh họa; chưa có định vị trong nhà hoặc sơ đồ từng phòng thật.
+- Nút “Tôi đã khám xong” ghi nhận tiến độ do bệnh nhân xác nhận; không thay thế kết quả chuyên môn.
+- Thuật toán backend là bộ quy tắc xác định, chưa gọi dịch vụ trong thư mục `ai/`.
 
-**Khóa đồng thời** là cơ chế chỉ cho một yêu cầu sửa cùng dữ liệu tại một thời điểm ngắn, tránh hai thao tác tranh cùng một chỗ.
+## 4. Phần chưa triển khai
 
-## 4. Chức năng vẫn đang mô phỏng trên giao diện
+- Kết nối HIS/LIS/RIS/PACS thật.
+- Nội dung và trạng thái sẵn sàng của kết quả xét nghiệm/chẩn đoán hình ảnh.
+- Xác thực người dùng và phân quyền truy cập hồ sơ.
+- Thông báo đẩy, SMS và số điện thoại thật của bệnh viện.
+- Màn hình nhân viên tiếp nhận và cập nhật trạng thái yêu cầu hỗ trợ.
+- Tự động đổi phòng khi có sự cố và quy trình duyệt phương án mới.
+- Hàng chờ trực tiếp theo từng bệnh nhân sau khi đã xác nhận lộ trình.
 
-- Hồ sơ lượt khám và chỉ định đã ký.
-- Kết quả xét nghiệm.
-- Tiến độ từng bước hành trình từ LIS/RIS/PACS.
-- Xác nhận đã đến đúng phòng bằng QR hoặc quầy.
-- Cập nhật hàng chờ trực tiếp cho bệnh nhân đã xác nhận.
-- Thông báo và đánh dấu đã đọc.
-- Đề nghị đổi phòng khi thiết bị tạm dừng.
-- Đổi phòng trong màn hình chi tiết và tính lại toàn tuyến.
-- Bản đồ dùng vị trí thực tế.
+## 5. Quy tắc an toàn
 
-Các phần này vẫn hiển thị đúng nguyên mẫu nhưng chưa được coi là dữ liệu nghiệp vụ thật.
-
-## 5. Thứ tự phát triển tiếp theo
-
-1. Tạo API chỉ định đã ký và bối cảnh lượt khám.
-2. Tạo kho hành trình, bước hành trình và trạng thái hàng chờ.
-3. Nhận sự kiện hoàn tất từ hệ thống xét nghiệm và chẩn đoán hình ảnh.
-4. Tạo API đổi phòng, so sánh trước–sau và bảo toàn chỗ cũ.
-5. Tạo thông báo trực tiếp và trạng thái đã đọc.
-6. Thay bộ nhớ tạm bằng cơ sở dữ liệu có giao dịch.
-
-**Giao dịch cơ sở dữ liệu** là nhóm thao tác hoặc cùng thành công, hoặc cùng được hoàn tác khi có lỗi, giúp không mất chỗ cũ trong lúc đổi tuyến.
+- Frontend không tự thêm chỉ định hoặc phòng.
+- Backend loại phòng tạm dừng và kiểm tra đủ dịch vụ bắt buộc trước khi trả lộ trình.
+- Không hiển thị câu “kết quả đã sẵn sàng” khi chưa có dữ liệu từ hệ thống chuyên môn.
+- Yêu cầu hỗ trợ phải gắn với mã lượt khám và vị trí hiện tại.

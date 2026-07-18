@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigation, QrCode, MapPin, Accessibility, HeadphonesIcon, CheckCircle2 } from "lucide-react";
+import { Navigation, MapPin, Accessibility, CheckCircle2 } from "lucide-react";
 import { AppHeader } from "./AppHeader";
 import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 
@@ -33,7 +33,7 @@ export function DirectionsScreen({ origin, destination, roomCode, floor, distanc
       />
 
       <div className="flex flex-col gap-3 px-4 pt-4">
-        {/* Map */}
+        {/* Sơ đồ minh họa */}
         <div className="bg-card rounded-xl border border-border overflow-hidden" style={{ height: 200 }}>
           <svg width="100%" height="100%">
             <rect width="100%" height="100%" fill="#F0F5F8" />
@@ -57,6 +57,9 @@ export function DirectionsScreen({ origin, destination, roomCode, floor, distanc
             <text x="255" y="78" fill="#DC2626" fontSize="11" fontWeight="600">{destination}</text>
           </svg>
         </div>
+        <p style={{ fontSize: 12 }} className="text-muted-foreground text-center">
+          Sơ đồ minh họa, chưa phải bản đồ định vị trong nhà theo thời gian thực.
+        </p>
 
         {/* Location card */}
         <div className="bg-card rounded-xl border border-border p-4">
@@ -71,7 +74,7 @@ export function DirectionsScreen({ origin, destination, roomCode, floor, distanc
           </div>
           <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-lg">
             <Accessibility size={15} className="text-primary" />
-            <p style={{ fontSize: 13 }} className="text-primary">Có thang máy và lối đi cho xe lăn</p>
+            <p style={{ fontSize: 13 }} className="text-primary">Kiểm tra biển chỉ dẫn thang máy; gửi yêu cầu hỗ trợ nếu cần xe lăn</p>
           </div>
         </div>
 
@@ -90,25 +93,6 @@ export function DirectionsScreen({ origin, destination, roomCode, floor, distanc
                 <p style={{ fontSize: 14 }} className="text-foreground leading-relaxed flex-1">{step}</p>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* QR */}
-        <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-            <QrCode size={20} className="text-muted-foreground" />
-          </div>
-          <p style={{ fontSize: 14 }} className="text-foreground">Quét mã QR để đối chiếu đúng phòng trước khi làm dịch vụ</p>
-        </div>
-
-        {/* Support */}
-        <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-            <HeadphonesIcon size={18} className="text-muted-foreground" />
-          </div>
-          <div>
-            <p style={{ fontSize: 14 }} className="text-foreground">Điểm hỗ trợ gần nhất</p>
-            <p style={{ fontSize: 13 }} className="text-muted-foreground">Quầy thông tin — tầng 2, gần thang máy</p>
           </div>
         </div>
 

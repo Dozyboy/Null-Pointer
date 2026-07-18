@@ -34,7 +34,7 @@ export function TodayJourneyScreen({
       <AppHeader
         variant="primary"
         title="Hành trình hôm nay"
-        subtitle={`${completedSteps}/${totalSteps} hoàn tất · Cập nhật 8 giây trước`}
+        subtitle={`${completedSteps}/${totalSteps} hoàn tất · Đã đồng bộ với máy chủ`}
         progress={{ current: completedSteps, total: totalSteps }}
       />
 
@@ -89,7 +89,7 @@ export function TodayJourneyScreen({
             <p style={{ fontSize: 13 }} className="text-muted-foreground">Toàn bộ hành trình</p>
             <div className="flex items-center gap-1.5">
               <RefreshCw size={12} className="text-muted-foreground" />
-              <span style={{ fontSize: 11 }} className="text-muted-foreground">8 giây trước</span>
+              <span style={{ fontSize: 11 }} className="text-muted-foreground">Đồng bộ từ máy chủ</span>
             </div>
           </div>
           <div className="relative px-4 py-3">

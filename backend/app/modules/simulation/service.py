@@ -54,7 +54,7 @@ class _PatientState:
 
 
 class HospitalSimulationService:
-    """Bộ mô phỏng xác định, lưu trong bộ nhớ và chỉ dùng cho môi trường demo."""
+    """Bộ mô phỏng demo; cấu hình phòng được lưu, luồng bệnh nhân là tạm thời."""
 
     data_notice = "Dữ liệu giả lập, không chứa thông tin bệnh nhân thật."
 
@@ -71,9 +71,10 @@ class HospitalSimulationService:
         self._patient_sequence = 0
         self._tick = 0
         self._simulation_time = datetime.now(UTC).replace(microsecond=0)
-        self.reset()
+        self.reset(restore_fixture_operations=False)
 
-    def reset(self) -> SimulationSnapshot:
+    def reset(self, *, restore_fixture_operations: bool = True) -> SimulationSnapshot:
+        """Tạo lại luồng bệnh nhân; API reset khôi phục trạng thái phòng mẫu trong bộ nhớ."""
         with self._lock:
             self._tick = 0
             self._event_sequence = 0
@@ -81,6 +82,18 @@ class HospitalSimulationService:
             self._simulation_time = datetime.now(UTC).replace(microsecond=0)
             self._events = []
             self._rooms = self._load_room_states()
+            if restore_fixture_operations:
+                fixture_defaults = {seed.code: seed for seed in ROOM_SEEDS}
+                for room_code, room in self._rooms.items():
+                    fixture = fixture_defaults.get(room_code)
+                    if fixture is None:
+                        continue
+                    room.operational = fixture.initially_operational
+                    room.status_reason = (
+                        None
+                        if fixture.initially_operational
+                        else "Bảo trì thiết bị theo kịch bản demo."
+                    )
             self._patients = {}
 
             for index in range(INITIAL_PATIENT_COUNT):
@@ -236,26 +249,12 @@ class HospitalSimulationService:
 
     def _load_room_states(self) -> dict[str, _RoomState]:
         if self._room_repository is not None:
-            fixture_defaults = {seed.code: seed for seed in ROOM_SEEDS}
             return {
                 room.seed.code: _RoomState(
                     seed=room.seed,
-                    operational=(
-                        fixture_defaults[room.seed.code].initially_operational
-                        if room.seed.code in fixture_defaults
-                        else room.operational
-                    ),
+                    operational=room.operational,
                     manual_waiting_patients=room.manual_waiting_patients,
-                    status_reason=(
-                        "Bảo trì thiết bị theo kịch bản demo."
-                        if room.seed.code in fixture_defaults
-                        and not fixture_defaults[room.seed.code].initially_operational
-                        else (
-                            None
-                            if room.seed.code in fixture_defaults
-                            else room.status_reason
-                        )
-                    ),
+                    status_reason=room.status_reason,
                 )
                 for room in self._room_repository.list_rooms()
             }

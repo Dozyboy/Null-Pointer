@@ -2,11 +2,8 @@ import { useState } from "react";
 import {
   ClipboardList,
   Map,
-  FlaskConical,
   LayoutList,
-  HeadphonesIcon,
   ChevronRight,
-  Bell,
   User,
   Stethoscope,
   Clock,
@@ -14,7 +11,6 @@ import {
   CheckCircle2,
   Activity,
   FileText,
-  Phone,
   Timer,
   Loader2,
 } from "lucide-react";
@@ -27,7 +23,7 @@ import type { PatientActivity } from "../../../entities/patient/model/patient-ac
 import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 
 interface DashboardScreenProps {
-  order?: ClinicalOrderDispatch;
+  order: ClinicalOrderDispatch;
   activities: PatientActivity[];
   isActivitiesLoading: boolean;
   hasActivitiesError: boolean;
@@ -38,16 +34,15 @@ interface DashboardScreenProps {
   onRegenerateJourney: (strategy: ScheduleStrategy) => void;
   onCompleteCurrentService: () => void;
   onViewMap: () => void;
+  onOpenSupport: () => void;
 }
 
-type MenuTab = "today" | "orders" | "results" | "schedule" | "support";
+type MenuTab = "today" | "orders" | "schedule";
 
 const menuTabs: { id: MenuTab; label: string; icon: React.ReactNode }[] = [
   { id: "today", label: "Hôm nay", icon: <Activity size={18} /> },
   { id: "orders", label: "Chỉ định", icon: <ClipboardList size={18} /> },
-  { id: "results", label: "Kết quả", icon: <FlaskConical size={18} /> },
   { id: "schedule", label: "Lịch trình", icon: <LayoutList size={18} /> },
-  { id: "support", label: "Hỗ trợ", icon: <HeadphonesIcon size={18} /> },
 ];
 
 const orderItemIcons: Record<ClinicalOrderItem["room_service_type"], string> = {
@@ -103,12 +98,13 @@ export function DashboardScreen({
   onRegenerateJourney,
   onCompleteCurrentService,
   onViewMap,
+  onOpenSupport,
 }: DashboardScreenProps) {
   const [activeTab, setActiveTab] = useState<MenuTab>("today");
-  const patientName = order?.patient_name ?? "Nguyễn Thị Mai";
-  const patientCode = order?.patient_code ?? "BN-00847";
-  const encounterId = order?.encounter_id ?? "TM-2026-00847";
-  const doctorName = order?.doctor_name ?? "BS. Trần Văn Hùng";
+  const patientName = order.patient_name;
+  const patientCode = order.patient_code;
+  const encounterId = order.encounter_id;
+  const doctorName = order.doctor_name;
 
   return (
     <div className="flex flex-col min-h-full bg-background">
@@ -122,15 +118,6 @@ export function DashboardScreen({
             </div>
             <span style={{ fontSize: 15 }} className="text-white">Bệnh viện Đa khoa TW</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="relative w-10 h-10 flex items-center justify-center rounded-full bg-white/15 active:bg-white/25 transition-colors" aria-label="Thông báo">
-              <Bell size={18} className="text-white" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-400" />
-            </button>
-            <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 active:bg-white/25 transition-colors" aria-label="Hồ sơ">
-              <User size={18} className="text-white" />
-            </button>
-          </div>
         </div>
 
         {/* Patient info card */}
@@ -143,7 +130,7 @@ export function DashboardScreen({
             {/* Info */}
             <div className="flex-1 min-w-0">
               <p style={{ fontSize: 19 }} className="text-white">{patientName}</p>
-              <p style={{ fontSize: 13, opacity: 0.8 }} className="text-white">Dữ liệu lượt khám đang được đồng bộ từ bệnh viện</p>
+              <p style={{ fontSize: 13, opacity: 0.8 }} className="text-white">Dữ liệu lượt khám đã đồng bộ từ máy chủ điều phối</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="bg-white/20 text-white px-2.5 py-1 rounded-full" style={{ fontSize: 12 }}>
                   Mã BN: {patientCode}
@@ -201,7 +188,6 @@ export function DashboardScreen({
           />
         )}
         {activeTab === "orders" && <OrdersTab order={order} onViewSchedule={() => setActiveTab("schedule")} />}
-        {activeTab === "results" && <ResultsTab order={order} />}
         {activeTab === "schedule" && (
           <ScheduleTab
             order={order}
@@ -211,9 +197,9 @@ export function DashboardScreen({
             onRegenerateJourney={onRegenerateJourney}
             onCompleteCurrentService={onCompleteCurrentService}
             onViewMap={onViewMap}
+            onOpenSupport={onOpenSupport}
           />
         )}
-        {activeTab === "support" && <SupportTab />}
       </div>
     </div>
   );
@@ -221,7 +207,7 @@ export function DashboardScreen({
 
 /* ── Today tab ── */
 interface TodayTabProps {
-  order?: ClinicalOrderDispatch;
+  order: ClinicalOrderDispatch;
   activities: PatientActivity[];
   isLoading: boolean;
   hasError: boolean;
@@ -249,14 +235,14 @@ function TodayTab({
   onRetry,
   onViewOrders,
 }: TodayTabProps) {
-  const itemCount = order?.items.length ?? 0;
-  const itemNames = order?.items.map((item) => item.service_name).join(" · ") ?? "";
-  const doctorName = order?.doctor_name ?? "Chưa có dữ liệu";
-  const doctorRoom = order?.doctor_room_code ?? "Chưa có dữ liệu";
+  const itemCount = order.items.length;
+  const itemNames = order.items.map((item) => item.service_name).join(" · ");
+  const doctorName = order.doctor_name;
+  const doctorRoom = order.doctor_room_code;
   return (
     <div className="flex flex-col gap-3 px-4 pt-4 pb-8">
       {/* Active task banner */}
-      {order && <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4">
+      <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-4">
         <div className="flex items-start gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
             <AlertCircle size={20} className="text-amber-600" />
@@ -277,7 +263,7 @@ function TodayTab({
           Xem chỉ định
           <ChevronRight size={18} />
         </button>
-      </div>}
+      </div>
 
       {/* Today's timeline */}
       <div>
@@ -343,24 +329,18 @@ function TodayTab({
 }
 
 /* ── Orders tab ── */
-function OrdersTab({ order, onViewSchedule }: { order?: ClinicalOrderDispatch; onViewSchedule: () => void }) {
-  const firstServiceCode = order?.route_proposal.options[0]?.steps.find(
+function OrdersTab({ order, onViewSchedule }: { order: ClinicalOrderDispatch; onViewSchedule: () => void }) {
+  const firstServiceCode = order.route_proposal.options[0]?.steps.find(
     (step) => step.service_code !== "doctor_return",
   )?.service_code;
-  const services = order
-    ? order.items.map((item, index) => ({
+  const services = order.items.map((item, index) => ({
         icon: orderItemIcons[item.room_service_type],
         name: item.service_name,
         code: item.service_code,
         note: getOrderItemNote(item),
         order: index + 1,
         locked: item.service_code === firstServiceCode,
-      }))
-    : [
-        { icon: "🩸", name: "Xét nghiệm máu", code: "XN-MAU-001", note: "Nhịn ăn ≥ 4 giờ", order: 1, locked: true },
-        { icon: "🫁", name: "Chụp X-quang ngực", code: "XQ-NGUC-002", note: "Không có điều kiện đặc biệt", order: 2, locked: false },
-        { icon: "🔊", name: "Siêu âm bụng", code: "SA-BUNG-003", note: "Tiếp tục nhịn ăn", order: 3, locked: false },
-      ];
+      }));
   return (
     <div className="flex flex-col gap-3 px-4 pt-4 pb-8">
       <div className="flex items-center justify-between">
@@ -405,101 +385,6 @@ function OrdersTab({ order, onViewSchedule }: { order?: ClinicalOrderDispatch; o
   );
 }
 
-/* ── Results tab ── */
-function ResultsTab({ order }: { order?: ClinicalOrderDispatch }) {
-  const results = order
-    ? order.items.map((item) => ({
-        icon: orderItemIcons[item.room_service_type],
-        name: item.service_name,
-        code: item.service_code,
-        hasResult: false,
-        readyAt: null,
-      }))
-    : [
-        { icon: "🩸", name: "Xét nghiệm máu", code: "XN-MAU-001", hasResult: false, readyAt: null },
-        { icon: "🫁", name: "Chụp X-quang ngực", code: "XQ-NGUC-002", hasResult: true, readyAt: "11:08" },
-        { icon: "🔊", name: "Siêu âm bụng", code: "SA-BUNG-003", hasResult: false, readyAt: null },
-      ];
-
-  const readyCount = results.filter((r) => r.hasResult).length;
-
-  return (
-    <div className="flex flex-col gap-3 px-4 pt-4 pb-8">
-      {/* Tổng trạng thái */}
-      <div className={`rounded-xl border p-3 flex items-center gap-3 ${readyCount === results.length ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${readyCount === results.length ? "bg-emerald-100" : "bg-amber-100"}`}>
-          <FlaskConical size={18} className={readyCount === results.length ? "text-emerald-600" : "text-amber-600"} />
-        </div>
-        <div className="flex-1">
-          <p style={{ fontSize: 14 }} className={readyCount === results.length ? "text-emerald-800" : "text-amber-800"}>
-            {readyCount === results.length
-              ? "Tất cả kết quả đã sẵn sàng"
-              : `${readyCount}/${results.length} kết quả đã sẵn sàng`}
-          </p>
-          <p style={{ fontSize: 12 }} className="text-muted-foreground mt-0.5">
-            {readyCount < results.length ? "Các kết quả còn lại đang được xử lý" : "Bác sĩ có thể xem toàn bộ kết quả"}
-          </p>
-        </div>
-      </div>
-
-      {/* Danh sách kết quả */}
-      <p style={{ fontSize: 12, letterSpacing: "0.06em" }} className="text-muted-foreground uppercase pl-1">
-        Kết quả xét nghiệm hôm nay
-      </p>
-
-      {results.map((r, idx) => (
-        <div key={idx} className={`bg-card rounded-xl border p-4 ${r.hasResult ? "border-emerald-200" : "border-border"}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 text-xl">
-              {r.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p style={{ fontSize: 15 }} className="text-foreground">{r.name}</p>
-              <p style={{ fontSize: 12 }} className="text-muted-foreground">{r.code}</p>
-            </div>
-            {r.hasResult ? (
-              <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full flex-shrink-0">
-                <CheckCircle2 size={13} />
-                <span style={{ fontSize: 12 }}>Đã có</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 bg-muted text-muted-foreground px-2.5 py-1 rounded-full flex-shrink-0">
-                <Loader2 size={13} className="animate-spin" />
-                <span style={{ fontSize: 12 }}>Chưa có</span>
-              </div>
-            )}
-          </div>
-
-          {r.hasResult && r.readyAt && (
-            <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Clock size={12} className="text-muted-foreground" />
-                <span style={{ fontSize: 12 }} className="text-muted-foreground">Sẵn sàng lúc {r.readyAt}</span>
-              </div>
-              <button
-                className="flex items-center gap-1.5 text-primary"
-                style={{ fontSize: 13 }}
-              >
-                <FileText size={13} />
-                Xem kết quả chi tiết
-                <ChevronRight size={13} />
-              </button>
-            </div>
-          )}
-
-          {!r.hasResult && (
-            <div className="mt-2">
-              <p style={{ fontSize: 12 }} className="text-muted-foreground">
-                Kết quả sẽ hiển thị tại đây sau khi phòng xét nghiệm hoàn tất
-              </p>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ── Schedule tab ── */
 function ScheduleTab({
   order,
@@ -509,21 +394,23 @@ function ScheduleTab({
   onRegenerateJourney,
   onCompleteCurrentService,
   onViewMap,
+  onOpenSupport,
 }: {
-  order?: ClinicalOrderDispatch;
+  order: ClinicalOrderDispatch;
   scheduleStrategy: ScheduleStrategy;
   currentStep: number;
   routeOptionId?: string;
   onRegenerateJourney: (strategy: ScheduleStrategy) => void;
   onCompleteCurrentService: () => void;
   onViewMap: () => void;
+  onOpenSupport: () => void;
 }) {
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [showCompletionConfirmation, setShowCompletionConfirmation] = useState(false);
 
-  const recommendedOption = order?.route_proposal.options.find(
+  const recommendedOption = order.route_proposal.options.find(
     (option) => option.id === routeOptionId,
-  ) ?? order?.route_proposal.options[0];
+  ) ?? order.route_proposal.options[0];
   const estimatedDuration = recommendedOption
     ? `${recommendedOption.duration_minutes_min}–${recommendedOption.duration_minutes_max} phút`
     : undefined;
@@ -533,89 +420,27 @@ function ScheduleTab({
       label: "Cân bằng",
       desc: "Tối ưu thời gian, quãng đường và sự ổn định",
       icon: <Activity size={18} />,
-      time: estimatedDuration ?? "~3.5 giờ",
+      time: estimatedDuration ?? "Đang tính",
     },
     {
       id: "finish_early",
       label: "Ưu tiên làm dịch vụ sớm",
       desc: "Đưa vào các phòng có thể tiếp nhận sớm; có thể chờ bác sĩ lâu hơn",
       icon: <Timer size={18} />,
-      time: estimatedDuration ?? "~2.8 giờ",
+      time: estimatedDuration ?? "Đang tính",
     },
     {
       id: "leave_fast",
       label: "Ưu tiên gặp bác sĩ chẩn đoán",
       desc: "Sắp xếp để bác sĩ có đủ toàn bộ kết quả trong thời gian sớm nhất",
       icon: <ChevronRight size={18} />,
-      time: estimatedDuration ?? "~2.2 giờ",
+      time: estimatedDuration ?? "Đang tính",
     },
   ];
 
   type SlotStatus = "done" | "active" | "pending" | "upcoming";
 
-  const defaultSlots: {
-    time: string;
-    endTime?: string;
-    title: string;
-    location: string;
-    status: SlotStatus;
-    note?: string;
-    duration?: string;
-  }[] = [
-    {
-      time: "08:30",
-      endTime: "08:50",
-      title: "Đăng ký khám & đo sinh hiệu",
-      location: "Quầy tiếp nhận — tầng 1",
-      status: "done",
-      duration: "20 phút",
-    },
-    {
-      time: "09:45",
-      endTime: "10:00",
-      title: "Khám với BS. Trần Văn Hùng",
-      location: "Phòng 205 — tầng 2, khu A",
-      status: "done",
-      duration: "15 phút",
-      note: "Bác sĩ đã ký 3 chỉ định",
-    },
-    {
-      time: "10:05",
-      endTime: "10:15",
-      title: "Xét nghiệm máu",
-      location: "Lấy máu 01 — tầng 1, khu A",
-      status: "active",
-      duration: "5–10 phút",
-      note: "Cần nhịn ăn — đã đáp ứng",
-    },
-    {
-      time: "10:20",
-      endTime: "10:45",
-      title: "Chụp X-quang ngực",
-      location: "X-quang 03 — tầng 2, khu A",
-      status: "pending",
-      duration: "10–20 phút chờ + 10 phút chụp",
-    },
-    {
-      time: "10:50",
-      endTime: "11:20",
-      title: "Siêu âm bụng",
-      location: "Siêu âm 05 — tầng 2, khu A",
-      status: "pending",
-      duration: "15–25 phút chờ + 20 phút",
-      note: "Tiếp tục nhịn ăn",
-    },
-    {
-      time: "11:30",
-      endTime: "12:00",
-      title: "Tái khám — nhận kết quả",
-      location: "Phòng 205 — tầng 2, khu A",
-      status: "upcoming",
-      duration: "Khi đủ 3 kết quả",
-      note: "BS. Trần Văn Hùng",
-    },
-  ];
-  const slots = order && recommendedOption
+  const slots = recommendedOption
     ? [
         {
           time: formatOrderMinute(order.created_at, -15),
@@ -642,7 +467,7 @@ function ScheduleTab({
           note: step.lock_reason ?? undefined,
         })),
       ]
-    : defaultSlots;
+    : [];
 
   const statusConfig: Record<SlotStatus, { dot: string; label: string; labelColor: string; cardBorder: string; timeBg: string }> = {
     done:     { dot: "bg-emerald-500",  label: "Hoàn tất",    labelColor: "text-emerald-700 bg-emerald-50",  cardBorder: "border-border opacity-60",      timeBg: "bg-muted" },
@@ -653,10 +478,8 @@ function ScheduleTab({
 
   const selectedPriority = priorityOptions.find((p) => p.id === scheduleStrategy)!;
   const nextStep = recommendedOption?.steps[currentStep];
-  const displayDate = order
-    ? orderDateFormatter.format(new Date(order.created_at))
-    : "Thứ Sáu, 17/07/2026";
-  const encounterId = order?.encounter_id ?? "TM-2026-00847";
+  const displayDate = orderDateFormatter.format(new Date(order.created_at));
+  const encounterId = order.encounter_id;
   const completedSlotCount = slots.filter((slot) => slot.status === "done").length;
   const progressPercent = Math.round((completedSlotCount / Math.max(slots.length, 1)) * 100);
 
@@ -849,11 +672,11 @@ function ScheduleTab({
               </div>
               <div className="flex-1">
                 <p style={{ fontSize: 13 }} className="text-muted-foreground">Đến tiếp theo</p>
-                <p style={{ fontSize: 16 }} className="text-foreground">{nextStep?.room_name ?? "Lấy máu 01"}</p>
-                <p style={{ fontSize: 13 }} className="text-muted-foreground">{nextStep ? `${nextStep.floor} · Di chuyển ${nextStep.travel_minutes} phút` : "Tầng 1, khu A · Cách ~60 m"}</p>
+                <p style={{ fontSize: 16 }} className="text-foreground">{nextStep?.room_name ?? "Đã hoàn tất lộ trình"}</p>
+                <p style={{ fontSize: 13 }} className="text-muted-foreground">{nextStep ? `${nextStep.floor} · Di chuyển ${nextStep.travel_minutes} phút` : "Không còn phòng dịch vụ tiếp theo"}</p>
               </div>
               <div className="bg-secondary text-primary px-2.5 py-1 rounded-full flex-shrink-0" style={{ fontSize: 12 }}>
-                {nextStep && order ? `Dự kiến ${formatOrderMinute(order.created_at, nextStep.arrival_minutes)}` : "Nên đến trước 10:20"}
+                {nextStep ? `Dự kiến ${formatOrderMinute(order.created_at, nextStep.arrival_minutes)}` : "Hoàn tất"}
               </div>
             </div>
           </div>
@@ -885,6 +708,8 @@ function ScheduleTab({
               Xem bản đồ đầy đủ
             </button>
             <button
+              type="button"
+              onClick={onOpenSupport}
               className="px-4 py-3 border border-border bg-card text-foreground rounded-xl"
               style={{ fontSize: 14, minHeight: 48 }}
             >
@@ -904,50 +729,6 @@ function ScheduleTab({
           }}
         />
       )}
-    </div>
-  );
-}
-
-/* ── Support tab ── */
-function SupportTab() {
-  return (
-    <div className="flex flex-col gap-3 px-4 pt-4 pb-8">
-      <div className="bg-primary rounded-2xl p-5 text-center">
-        <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
-          <HeadphonesIcon size={28} className="text-white" />
-        </div>
-        <p style={{ fontSize: 18 }} className="text-white mb-1">Cần hỗ trợ?</p>
-        <p style={{ fontSize: 13, opacity: 0.85 }} className="text-white mb-4">Nhân viên luôn sẵn sàng giúp bạn</p>
-        <button
-          className="w-full py-3.5 bg-white text-primary rounded-xl flex items-center justify-center gap-2"
-          style={{ fontSize: 16, minHeight: 50 }}
-        >
-          <Phone size={18} />
-          Gọi nhân viên hỗ trợ
-        </button>
-      </div>
-
-      {[
-        { icon: <Map size={20} className="text-primary" />, title: "Sơ đồ bệnh viện", sub: "Tìm đường đến các khoa, phòng" },
-        { icon: <FileText size={20} className="text-primary" />, title: "Hướng dẫn quy trình", sub: "Các bước khám từ đầu đến cuối" },
-        { icon: <Phone size={20} className="text-primary" />, title: "Đường dây hỗ trợ", sub: "1900 1234 — Miễn phí, 24/7" },
-        { icon: <HeadphonesIcon size={20} className="text-primary" />, title: "Hỗ trợ người thân thao tác thay", sub: "Cấp quyền cho người thân hỗ trợ" },
-      ].map((item, idx) => (
-        <button
-          key={idx}
-          className="bg-card rounded-xl border border-border p-4 flex items-center gap-3 text-left active:bg-muted transition-colors w-full"
-          style={{ minHeight: 64 }}
-        >
-          <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-            {item.icon}
-          </div>
-          <div className="flex-1">
-            <p style={{ fontSize: 15 }} className="text-foreground">{item.title}</p>
-            <p style={{ fontSize: 13 }} className="text-muted-foreground">{item.sub}</p>
-          </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
-        </button>
-      ))}
     </div>
   );
 }

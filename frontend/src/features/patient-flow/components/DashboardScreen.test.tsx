@@ -94,6 +94,7 @@ describe('DashboardScreen', () => {
   it('hiển thị hoạt động thật và không hiển thị timeline giả cũ', () => {
     render(
       <DashboardScreen
+        order={order}
         activities={[
           {
             id: 'ACT-001',
@@ -116,6 +117,7 @@ describe('DashboardScreen', () => {
         onRegenerateJourney={() => undefined}
         onCompleteCurrentService={() => undefined}
         onViewMap={() => undefined}
+        onOpenSupport={() => undefined}
       />,
     )
 
@@ -142,6 +144,7 @@ describe('DashboardScreen', () => {
         onRegenerateJourney={onRegenerateJourney}
         onCompleteCurrentService={onCompleteCurrentService}
         onViewMap={() => undefined}
+        onOpenSupport={() => undefined}
       />,
     )
 
@@ -169,6 +172,7 @@ describe('DashboardScreen', () => {
         onRegenerateJourney={onRegenerateJourney}
         onCompleteCurrentService={onCompleteCurrentService}
         onViewMap={() => undefined}
+        onOpenSupport={() => undefined}
       />,
     )
 

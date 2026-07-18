@@ -492,7 +492,7 @@ export function ClinicalServiceCatalogPage() {
           </div>
 
           {catalogQuery.isPending && <p className="catalog-table-state">Đang đọc dữ liệu đã lưu…</p>}
-          {catalogQuery.isError && <p className="catalog-table-state catalog-message--error" role="alert">Không tải được danh mục. Hãy kiểm tra backend tại cổng 8000.</p>}
+          {catalogQuery.isError && <p className="catalog-table-state catalog-message--error" role="alert">Không tải được danh mục. Hãy kiểm tra máy chủ backend đã cấu hình.</p>}
           {catalogQuery.data && (
             <div className="catalog-table-wrap">
               <table>

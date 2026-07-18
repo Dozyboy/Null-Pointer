@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 import app.modules.simulation.router as simulation_router_module
 from app.main import app
 from app.modules.simulation.room_repository import SqliteSimulationRoomRepository
+from app.modules.simulation.schemas import RoomStatus
 from app.modules.simulation.service import HospitalSimulationService
 
 
@@ -62,3 +63,20 @@ def test_queue_cannot_be_reduced_below_zero(tmp_path: Path) -> None:
 
     assert before.waiting_patients >= 0
     assert room.waiting_patients == 0
+
+
+def test_room_operation_is_persisted_after_service_restart(tmp_path: Path) -> None:
+    database_path = tmp_path / "simulation.db"
+    service = build_service(database_path)
+
+    service.set_room_operation(
+        "XN-113",
+        operational=False,
+        reason="Tạm dừng để kiểm thử lưu trạng thái.",
+    )
+
+    restarted = build_service(database_path).get_snapshot()
+    room = next(item for item in restarted.rooms if item.code == "XN-113")
+
+    assert room.status == RoomStatus.PAUSED
+    assert room.status_reason == "Tạm dừng để kiểm thử lưu trạng thái."

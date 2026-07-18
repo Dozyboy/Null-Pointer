@@ -113,11 +113,11 @@ const initialRoom: CreateSimulationRoomPayload = {
 }
 
 const initialOrder: DispatchClinicalOrderPayload = {
-  patient_code: 'BN-00847',
-  patient_name: 'Nguyễn Thị Mai',
-  encounter_id: 'TM-2026-00847',
-  doctor_name: 'BS. Trần Văn Hùng',
-  doctor_room_code: 'PK-305',
+  patient_code: '',
+  patient_name: '',
+  encounter_id: '',
+  doctor_name: '',
+  doctor_room_code: '',
   clinical_service_codes: [],
   priority: 'fastest',
   schedule_strategy: 'balanced',
@@ -270,7 +270,7 @@ export function SimulationPage() {
         {snapshotQuery.isPending && <div className="sim-page-state">Đang đọc dữ liệu bệnh viện giả lập…</div>}
         {snapshotQuery.isError && (
           <div className="sim-page-state is-error" role="alert">
-            Không kết nối được backend tại cổng 8000. Hãy khởi động backend rồi thử lại.
+            Không kết nối được máy chủ backend đã cấu hình. Hãy kiểm tra kết nối rồi thử lại.
           </div>
         )}
 
