@@ -57,7 +57,17 @@ class InMemoryRouteReservationRepository:
         matches = [
             record for record in self._records.values() if record.patient_code == patient_code
         ]
-        return max(matches, key=lambda item: item.created_at, default=None)
+        status_priority = {
+            ReservationStatus.CONFIRMED: 2,
+            ReservationStatus.HELD: 1,
+            ReservationStatus.EXPIRED: 0,
+            ReservationStatus.RELEASED: 0,
+        }
+        return max(
+            matches,
+            key=lambda item: (status_priority[item.status], item.created_at),
+            default=None,
+        )
 
     def clear(self) -> None:
         self._records.clear()
@@ -164,7 +174,17 @@ class SqliteRouteReservationRepository:
 
     def get_latest_for_patient(self, patient_code: str) -> ReservationRecord | None:
         return self._get_one(
-            "WHERE patient_code = ? ORDER BY created_at DESC LIMIT 1",
+            """
+            WHERE patient_code = ?
+            ORDER BY
+                CASE status
+                    WHEN 'confirmed' THEN 0
+                    WHEN 'held' THEN 1
+                    ELSE 2
+                END,
+                created_at DESC
+            LIMIT 1
+            """,
             (patient_code,),
         )
 

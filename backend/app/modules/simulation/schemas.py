@@ -115,7 +115,12 @@ class CreateSimulationRoomRequest(BaseModel):
     department: str = Field(min_length=2, max_length=120)
     floor: str = Field(min_length=1, max_length=40)
     service_type: str = Field(
-        pattern="^(blood_test|urine_test|xray|ultrasound|ct_scan|consultation)$"
+        pattern=(
+            "^(blood_test|urine_test|xray|ultrasound|soft_tissue_ultrasound|"
+            "ct_scan|cardiac_monitoring|eeg|endoscopy|sedated_endoscopy|"
+            "echocardiography|vascular_doppler|spirometry|bronchoscopy|mri|"
+            "consultation)$"
+        )
     )
     average_service_minutes: int = Field(ge=1, le=180)
     initial_waiting_patients: int = Field(default=0, ge=0, le=200)

@@ -10,7 +10,10 @@ from app.modules.simulation import clinical_order_router
 from app.modules.simulation.clinical_order_repository import (
     SqliteClinicalOrderRepository,
 )
-from app.modules.simulation.clinical_order_schemas import DispatchClinicalOrderRequest
+from app.modules.simulation.clinical_order_schemas import (
+    DispatchClinicalOrderRequest,
+    RecalculateClinicalOrderRouteRequest,
+)
 from app.modules.simulation.clinical_order_service import (
     ClinicalOrderSimulationService,
 )
@@ -60,13 +63,12 @@ def test_dispatch_matches_operational_rooms_and_persists_patient_order(
     assert latest.id == result.id
     assert [item.service_code for item in result.items] == ["LAB-HEMA", "LAB-URINE"]
     assert {room.location_code for room in result.items[0].matched_rooms} == {
-        "101 K1",
+        "113 K1",
         "102 K1",
         "103 K1",
     }
     assert {room.location_code for room in result.items[1].matched_rooms} == {
-        "107 K1",
-        "108 K1",
+        "104 K1",
     }
     assert [step.service_code for step in recommended.steps] == [
         "blood_test",
@@ -74,7 +76,7 @@ def test_dispatch_matches_operational_rooms_and_persists_patient_order(
         "doctor_return",
     ]
     assert recommended.steps[0].room_code.startswith("XN-")
-    assert recommended.steps[1].room_code.startswith("UR-")
+    assert recommended.steps[1].room_code.startswith("NT-")
 
 
 @pytest.fixture
@@ -102,3 +104,58 @@ def test_dispatch_api_sends_order_that_patient_can_receive(
     assert receive_response.status_code == 200
     assert receive_response.json()["id"] == dispatch_response.json()["id"]
     assert receive_response.json()["route_proposal"]["options"]
+
+
+def test_recalculation_uses_remaining_services_and_only_commits_after_confirmation(
+    tmp_path: Path,
+) -> None:
+    service = make_service(tmp_path / "recalculate.db")
+    original = service.dispatch(make_request())
+
+    recalculated = service.recalculate_route(
+        "BN-00847",
+        RecalculateClinicalOrderRouteRequest(
+            schedule_strategy="leave_fast",
+            completed_route_service_codes=["blood_test"],
+            start_room_code=original.route_proposal.options[0].steps[0].room_code,
+        ),
+    )
+
+    assert recalculated.route_proposal.id != original.route_proposal.id
+    assert [
+        step.service_code for step in recalculated.route_proposal.options[0].steps
+    ] == ["urine_test", "doctor_return"]
+    assert (
+        service.get_latest_for_patient("BN-00847").route_proposal.id
+        == original.route_proposal.id
+    )
+
+    service.commit_route_proposal(original.id, recalculated.route_proposal)
+    committed = service.get_latest_for_patient("BN-00847")
+
+    assert committed.route_proposal.id == recalculated.route_proposal.id
+    assert "thuật toán deterministic-routing-v2" in committed.route_proposal.warnings[-1]
+
+
+def test_recalculation_api_reads_current_room_state(
+    isolated_api_service: ClinicalOrderSimulationService,
+) -> None:
+    client = TestClient(app)
+    isolated_api_service.dispatch(make_request())
+
+    response = client.post(
+        "/api/v1/simulation/patients/BN-00847/clinical-orders/latest/route-proposals",
+        json={
+            "schedule_strategy": "finish_early",
+            "completed_route_service_codes": ["blood_test"],
+            "start_room_code": "XN-113",
+        },
+    )
+
+    assert response.status_code == 200
+    proposal = response.json()["route_proposal"]
+    assert proposal["schedule_strategy"] == "finish_early"
+    assert [step["service_code"] for step in proposal["options"][0]["steps"]] == [
+        "urine_test",
+        "doctor_return",
+    ]

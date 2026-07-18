@@ -22,6 +22,9 @@ import { SupportScreen } from "../components/SupportScreen";
 import { JourneyOverviewScreen } from "../components/JourneyOverviewScreen";
 import { MapScreen } from "../components/MapScreen";
 import { getLatestPatientOrder } from "../../../entities/clinical-order/api/clinical-order-api";
+import { getPatient } from "../../../entities/patient/api/patient-api";
+import { getTodayPatientActivities } from "../../../entities/patient/api/patient-activity-api";
+import type { PatientProfile } from "../../../entities/patient/model/patient.schemas";
 import {
   getLatestPatientReservation,
   mapClinicalOrderRoutes,
@@ -46,11 +49,30 @@ const isJourneyScreen = (screen: Screen) =>
 
 interface PatientDataStateProps {
   patientCode: string;
+  patient?: PatientProfile;
   isLoading: boolean;
+  hasPatientError: boolean;
   onRetry: () => void;
 }
 
-function PatientDataState({ patientCode, isLoading, onRetry }: PatientDataStateProps) {
+function PatientDataState({
+  patientCode,
+  patient,
+  isLoading,
+  hasPatientError,
+  onRetry,
+}: PatientDataStateProps) {
+  const title = hasPatientError
+    ? "Không tìm thấy hồ sơ bệnh nhân"
+    : isLoading
+      ? "Đang tải dữ liệu lượt khám"
+      : `Xin chào ${patient?.full_name ?? patientCode}`;
+  const description = hasPatientError
+    ? "Mã trong đường dẫn QR không tồn tại hoặc hồ sơ chưa được lưu trên máy chủ."
+    : isLoading
+      ? "Hệ thống đang đọc hồ sơ, chỉ định và lộ trình mới nhất từ bệnh viện."
+      : "Chưa có chỉ định mới. Màn hình sẽ tự cập nhật khi nhân viên gửi chỉ định cho bạn.";
+
   return (
     <div className="relative bg-background min-h-[100dvh] max-w-[430px] mx-auto">
       <div className="bg-primary text-primary-foreground px-4 pt-10 pb-8">
@@ -61,19 +83,36 @@ function PatientDataState({ patientCode, isLoading, onRetry }: PatientDataStateP
           <span style={{ fontSize: 15 }} className="text-white">Bệnh viện Đa khoa TW</span>
         </div>
         <p style={{ fontSize: 13, opacity: 0.8 }} className="text-white">Mã bệnh nhân</p>
-        <h1 style={{ fontSize: 26 }} className="text-white mt-1">{patientCode}</h1>
+        <h1 style={{ fontSize: 26 }} className="text-white mt-1">
+          {patient?.full_name ?? patientCode}
+        </h1>
+        {patient && (
+          <p style={{ fontSize: 13, opacity: 0.85 }} className="text-white mt-1">
+            {patient.id} · Lượt khám {patient.current_encounter_id}
+          </p>
+        )}
       </div>
       <div className="px-4 -mt-4">
         <div className="bg-card rounded-2xl border border-border p-6 text-center shadow-sm">
           <RefreshCw size={28} className={`text-primary mx-auto mb-4 ${isLoading ? "animate-spin" : ""}`} />
           <h2 style={{ fontSize: 18 }} className="text-foreground">
-            {isLoading ? "Đang tải dữ liệu lượt khám" : "Chưa có chỉ định mới"}
+            {title}
           </h2>
           <p style={{ fontSize: 14 }} className="text-muted-foreground mt-2 leading-relaxed">
-            {isLoading
-              ? "Hệ thống đang đọc chỉ định và lộ trình mới nhất từ bệnh viện."
-              : "Màn hình sẽ tự cập nhật khi nhân viên gửi chỉ định cho bệnh nhân này."}
+            {description}
           </p>
+          {patient && !hasPatientError && (
+            <div className="grid grid-cols-2 gap-2 mt-5 text-left">
+              <div className="rounded-xl bg-muted p-3">
+                <span style={{ fontSize: 11 }} className="text-muted-foreground">Bảo hiểm y tế</span>
+                <strong style={{ fontSize: 13 }} className="block text-foreground mt-1">{patient.health_insurance_number}</strong>
+              </div>
+              <div className="rounded-xl bg-muted p-3">
+                <span style={{ fontSize: 11 }} className="text-muted-foreground">Bác sĩ phụ trách</span>
+                <strong style={{ fontSize: 13 }} className="block text-foreground mt-1">{patient.attending_doctor_name}</strong>
+              </div>
+            </div>
+          )}
           {!isLoading && (
             <button
               type="button"
@@ -92,6 +131,13 @@ function PatientDataState({ patientCode, isLoading, onRetry }: PatientDataStateP
 
 export default function PatientFlowPage() {
   const { patientCode } = useParams<{ patientCode: string }>();
+  const patientQuery = useQuery({
+    queryKey: ["patient-profile", patientCode],
+    queryFn: () => getPatient(patientCode ?? ""),
+    enabled: Boolean(patientCode),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
   const patientOrderQuery = useQuery({
     queryKey: ["latest-patient-clinical-order", patientCode],
     queryFn: () => getLatestPatientOrder(patientCode ?? ""),
@@ -99,6 +145,14 @@ export default function PatientFlowPage() {
     retry: false,
     refetchInterval: 3_000,
   });
+  const patientActivitiesQuery = useQuery({
+    queryKey: ["today-patient-activities", patientCode],
+    queryFn: () => getTodayPatientActivities(patientCode ?? ""),
+    enabled: Boolean(patientCode),
+    retry: false,
+    refetchInterval: 3_000,
+  });
+  const patientProfile = patientCode ? patientQuery.data : undefined;
   const patientOrder = patientCode ? patientOrderQuery.data : undefined;
   const patientReservationQuery = useQuery({
     queryKey: ["latest-patient-reservation", patientCode, patientOrder?.id],
@@ -120,6 +174,7 @@ export default function PatientFlowPage() {
   const [activeTab, setActiveTab] = useState<NavTab>("today");
   const [prevScreen, setPrevScreen] = useState<Screen>("todayJourney");
   const [showRouteChange, setShowRouteChange] = useState(false);
+  const [isRegeneratingJourney, setIsRegeneratingJourney] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState(patientOrder?.id);
   const [activeReservation, setActiveReservation] = useState<RouteReservation | null>(null);
   const [journeySyncError, setJourneySyncError] = useState<string | null>(null);
@@ -134,7 +189,7 @@ export default function PatientFlowPage() {
   const savedReservation = activeReservation ?? persistedReservation;
   const displayedJourneyStep = (savedReservation?.currentStep ?? journeyStep) as JourneyStep;
   const displayedScreen: Screen =
-    screen === "newPrescription" && persistedReservation
+    screen === "newPrescription" && persistedReservation && !isRegeneratingJourney
       ? persistedReservation.journeyStatus === "completed"
         ? "complete"
         : "todayJourney"
@@ -148,6 +203,7 @@ export default function PatientFlowPage() {
     setActiveReservation(null);
     setJourneySyncError(null);
     setActiveTab("today");
+    setIsRegeneratingJourney(false);
     setScreen("newPrescription");
   }
 
@@ -157,7 +213,8 @@ export default function PatientFlowPage() {
 
   async function handleStepDone() {
     const next = (displayedJourneyStep + 1) as JourneyStep;
-    const lastStepIndex = Math.max((currentRoute?.stepDetails.length ?? 1) - 1, 0);
+    const displayedRoute = currentRoute ?? dispatchedRoutes?.[0];
+    const lastStepIndex = Math.max((displayedRoute?.stepDetails.length ?? 1) - 1, 0);
     const reservation = savedReservation;
     setJourneySyncError(null);
 
@@ -196,6 +253,12 @@ export default function PatientFlowPage() {
   const currentRoute = selectedRoute ?? viewDetailRoute ?? restoredRoute;
   const navigationRoute = currentRoute ?? dispatchedRoutes?.[0];
   const currentStepDetail = navigationRoute?.stepDetails[displayedJourneyStep];
+  const previousStepDetail =
+    displayedJourneyStep > 0
+      ? navigationRoute?.stepDetails[displayedJourneyStep - 1]
+      : undefined;
+  const directionOrigin =
+    previousStepDetail?.roomName ?? patientOrder?.doctor_room_code ?? "Vị trí hiện tại";
   const currentDestination = currentStepDetail?.roomName ?? "Điểm đến đang được cập nhật";
   const currentFloor = currentStepDetail?.floor ?? "Chưa có thông tin tầng";
   const currentDistance = currentStepDetail
@@ -216,12 +279,17 @@ export default function PatientFlowPage() {
   const tabContent = renderTabContent();
   const showBottomNav = isJourneyScreen(displayedScreen) || displayedScreen === "directions";
 
-  if (patientCode && !patientOrder) {
+  if (patientCode && (!patientProfile || !patientOrder)) {
     return (
       <PatientDataState
         patientCode={patientCode}
-        isLoading={patientOrderQuery.isPending}
-        onRetry={() => patientOrderQuery.refetch()}
+        patient={patientProfile}
+        isLoading={patientQuery.isPending || patientOrderQuery.isPending}
+        hasPatientError={patientQuery.isError}
+        onRetry={() => {
+          void patientQuery.refetch();
+          void patientOrderQuery.refetch();
+        }}
       />
     );
   }
@@ -254,10 +322,21 @@ export default function PatientFlowPage() {
         {displayedScreen === "dashboard" && (
           <DashboardScreen
             order={patientOrder}
-            onStartJourney={(strategy) => {
-              if (strategy) setScheduleStrategy(strategy);
-              nav("newPrescription");
+            activities={patientActivitiesQuery.data ?? []}
+            isActivitiesLoading={patientActivitiesQuery.isPending}
+            hasActivitiesError={patientActivitiesQuery.isError}
+            onRetryActivities={() => {
+              void patientActivitiesQuery.refetch();
             }}
+            scheduleStrategy={scheduleStrategy}
+            currentStep={displayedJourneyStep}
+            routeOptionId={navigationRoute?.backendOptionId}
+            onRegenerateJourney={(strategy) => {
+              setScheduleStrategy(strategy);
+              setIsRegeneratingJourney(true);
+              nav("chooseRoute");
+            }}
+            onCompleteCurrentService={handleStepDone}
             onViewMap={() => nav("mapView")}
           />
         )}
@@ -265,9 +344,11 @@ export default function PatientFlowPage() {
         {/* ── Map screen ── */}
         {displayedScreen === "mapView" && (
           <MapScreen
+            key={currentStepDetail?.id ?? `${currentDestination}-${currentFloor}`}
             destination={currentDestination}
             floor={currentFloor}
             travelMinutes={currentStepDetail?.travelMinutes}
+            onServiceCompleted={handleStepDone}
             onBack={() => nav("dashboard")}
           />
         )}
@@ -276,7 +357,10 @@ export default function PatientFlowPage() {
         {displayedScreen === "newPrescription" && (
           <NewPrescriptionScreen
             order={patientOrder}
-            onBack={() => nav("dashboard")}
+            onBack={() => {
+              setIsRegeneratingJourney(false);
+              nav("dashboard");
+            }}
             onContinue={() => nav("choosePriority")}
             onRequestSupport={() => nav("choosePriority")}
           />
@@ -294,9 +378,32 @@ export default function PatientFlowPage() {
           <RouteChoiceScreen
             priority={priority}
             scheduleStrategy={scheduleStrategy}
-            dispatchedRoutes={dispatchedRoutes}
+            dispatchedRoutes={isRegeneratingJourney ? undefined : dispatchedRoutes}
+            recalculation={
+              isRegeneratingJourney && patientOrder
+                ? {
+                    patientCode: patientOrder.patient_code,
+                    completedServiceCodes: (
+                      navigationRoute?.stepDetails
+                        .slice(0, displayedJourneyStep)
+                        .map((step) => step.serviceCode)
+                        .filter((serviceCode) => serviceCode !== "doctor_return")
+                        ?? []
+                    ),
+                    startRoomCode:
+                      previousStepDetail?.roomCode ?? patientOrder.doctor_room_code,
+                  }
+                : undefined
+            }
             doctorName={patientOrder?.doctor_name}
-            onBack={() => nav("choosePriority")}
+            onBack={() => {
+              if (isRegeneratingJourney) {
+                setIsRegeneratingJourney(false);
+                nav("dashboard");
+                return;
+              }
+              nav("choosePriority");
+            }}
             onSelect={(route) => { setSelectedRoute(route); nav("confirmReserve"); }}
             onViewDetail={(route) => { setViewDetailRoute(route); nav("routeDetail"); }}
           />
@@ -319,9 +426,11 @@ export default function PatientFlowPage() {
             doctorRoomCode={patientOrder?.doctor_room_code}
             onBack={() => nav("chooseRoute")}
             onConfirmed={(reservation) => {
+              setIsRegeneratingJourney(false);
               setActiveReservation(reservation);
               setJourneyStep(reservation.currentStep as JourneyStep);
               setActiveTab("today");
+              void patientOrderQuery.refetch();
               nav("todayJourney");
             }}
             onChooseAnother={() => nav("chooseRoute")}
@@ -354,11 +463,12 @@ export default function PatientFlowPage() {
 
             {displayedScreen === "directions" && (
               <DirectionsScreen
+                origin={directionOrigin}
                 destination={currentDestination}
                 roomCode={currentStepDetail?.roomCode}
                 floor={currentFloor}
                 distance={currentDistance}
-                onArrived={() => nav("waiting")}
+                onServiceCompleted={handleStepDone}
                 onNotFound={() => setActiveTab("support")}
                 onBack={() => nav(prevScreen)}
               />
@@ -370,6 +480,7 @@ export default function PatientFlowPage() {
                 doctorName={patientOrder?.doctor_name}
                 doctorRoomCode={patientOrder?.doctor_room_code}
                 onShowDirections={() => { setPrevScreen("complete"); nav("directions"); }}
+                onBackToDashboard={() => nav("dashboard")}
               />
             )}
           </>

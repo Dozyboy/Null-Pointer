@@ -56,9 +56,9 @@ def test_added_room_and_manual_queue_are_persisted(tmp_path: Path) -> None:
 def test_queue_cannot_be_reduced_below_zero(tmp_path: Path) -> None:
     service = build_service(tmp_path / "simulation.db")
 
-    before = next(room for room in service.get_snapshot().rooms if room.code == "CT-301")
-    after = service.adjust_room_queue("CT-301", -50)
-    room = next(item for item in after.rooms if item.code == "CT-301")
+    before = next(room for room in service.get_snapshot().rooms if room.code == "CT-109")
+    after = service.adjust_room_queue("CT-109", -50)
+    room = next(item for item in after.rooms if item.code == "CT-109")
 
     assert before.waiting_patients >= 0
     assert room.waiting_patients == 0
