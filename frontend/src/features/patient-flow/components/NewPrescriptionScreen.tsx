@@ -1,5 +1,4 @@
-import { Stethoscope, AlertCircle, ChevronRight, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Stethoscope, AlertCircle, ChevronRight } from "lucide-react";
 import { AppHeader } from "./AppHeader";
 import type {
   ClinicalOrderDispatch,
@@ -7,35 +6,11 @@ import type {
 } from "../../../entities/clinical-order/model/clinical-order.schemas";
 
 interface NewPrescriptionScreenProps {
-  order?: ClinicalOrderDispatch;
+  order: ClinicalOrderDispatch;
   onBack?: () => void;
   onContinue: () => void;
   onRequestSupport: () => void;
 }
-
-const defaultServices = [
-  {
-    id: 1,
-    name: "Xét nghiệm máu",
-    icon: "🩸",
-    note: "Cần nhịn ăn ít nhất 4 giờ trước",
-    mustDoFirst: true,
-  },
-  {
-    id: 2,
-    name: "Chụp X-quang ngực",
-    icon: "🫁",
-    note: "Không có điều kiện đặc biệt",
-    mustDoFirst: false,
-  },
-  {
-    id: 3,
-    name: "Siêu âm bụng",
-    icon: "🔊",
-    note: "Tiếp tục nhịn ăn trong suốt hành trình",
-    mustDoFirst: false,
-  },
-];
 
 const serviceIcons: Record<ClinicalOrderItem["room_service_type"], string> = {
   blood_test: "🩸",
@@ -67,10 +42,7 @@ function getServiceNote(item: ClinicalOrderItem) {
   return "Không có yêu cầu nhịn ăn";
 }
 
-function getPreparationNote(order?: ClinicalOrderDispatch) {
-  if (!order) {
-    return "Bạn cần nhịn ăn ít nhất 4 giờ trước khi lấy máu và trong suốt hành trình siêu âm.";
-  }
+function getPreparationNote(order: ClinicalOrderDispatch) {
   const fastingServices = order.items.filter(
     (item) => item.fasting_policy !== "not_required",
   );
@@ -81,36 +53,25 @@ function getPreparationNote(order?: ClinicalOrderDispatch) {
 }
 
 export function NewPrescriptionScreen({ order, onBack, onContinue, onRequestSupport }: NewPrescriptionScreenProps) {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(t);
-  }, []);
-
-  const firstServiceCode = order?.route_proposal.options[0]?.steps.find(
+  const firstServiceCode = order.route_proposal.options[0]?.steps.find(
     (step) => step.service_code !== "doctor_return",
   )?.service_code;
-  const services = order
-    ? order.items.map((item) => ({
+  const services = order.items.map((item) => ({
         id: item.service_code,
         name: item.service_name,
         icon: serviceIcons[item.room_service_type],
         note: getServiceNote(item),
         mustDoFirst: item.service_code === firstServiceCode,
-      }))
-    : defaultServices;
-  const signedAt = order
-    ? new Intl.DateTimeFormat("vi-VN", {
+      }));
+  const signedAt = new Intl.DateTimeFormat("vi-VN", {
         hour: "2-digit",
         minute: "2-digit",
-      }).format(new Date(order.created_at))
-    : "10:00";
-  const doctorName = order?.doctor_name ?? "BS. Trần Văn Hùng";
-  const doctorRoom = order?.doctor_room_code ?? "205";
-  const patientName = order?.patient_name ?? "Nguyễn Thị Mai";
-  const encounterId = order?.encounter_id ?? "TM-2026-00847";
-  const routeCount = order?.route_proposal.options.length ?? 3;
+      }).format(new Date(order.created_at));
+  const doctorName = order.doctor_name;
+  const doctorRoom = order.doctor_room_code;
+  const patientName = order.patient_name;
+  const encounterId = order.encounter_id;
+  const routeCount = order.route_proposal.options.length;
 
   return (
     <div className="flex flex-col min-h-full bg-background">
@@ -119,7 +80,7 @@ export function NewPrescriptionScreen({ order, onBack, onContinue, onRequestSupp
         subtitle="Bước 1/4"
         progress={{ current: 1, total: 4 }}
         onBack={onBack}
-        onForward={isLoading ? undefined : onContinue}
+        onForward={onContinue}
         forwardLabel="Tiếp tục"
       />
 
@@ -192,15 +153,9 @@ export function NewPrescriptionScreen({ order, onBack, onContinue, onRequestSupp
         {/* System status */}
         <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-2">
-            {isLoading ? (
-              <Loader2 size={16} className="text-primary animate-spin" />
-            ) : (
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            )}
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
             <p style={{ fontSize: 13 }} className="text-foreground">
-              {isLoading
-                ? "Hệ thống đang kiểm tra điều kiện và tìm lộ trình phù hợp..."
-                : `Đã tìm thấy ${routeCount} phương án phù hợp với chỉ định của bạn`}
+              Đã nhận {routeCount} phương án phù hợp từ hệ thống điều phối
             </p>
           </div>
         </div>
@@ -208,16 +163,11 @@ export function NewPrescriptionScreen({ order, onBack, onContinue, onRequestSupp
         {/* Actions */}
         <button
           onClick={onContinue}
-          disabled={isLoading}
-          className={`w-full py-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
-            isLoading
-              ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-primary text-primary-foreground active:scale-[0.98]"
-          }`}
+          className="w-full py-4 rounded-xl flex items-center justify-center gap-2 transition-all bg-primary text-primary-foreground active:scale-[0.98]"
           style={{ fontSize: 17, minHeight: 56 }}
         >
-          {isLoading ? "Đang chuẩn bị..." : "Chọn điều tôi ưu tiên"}
-          {!isLoading && <ChevronRight size={20} />}
+          Chọn điều tôi ưu tiên
+          <ChevronRight size={20} />
         </button>
 
         <button

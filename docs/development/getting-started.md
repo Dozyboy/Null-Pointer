@@ -90,8 +90,10 @@ Không đưa tệp `.env` lên Git. Chỉ đưa `.env.example` với giá trị 
 Frontend:
 
 ```text
-VITE_API_URL=http://localhost:8000/api/v1
+VITE_API_URL=https://nhip-vien-backend-845428428754.asia-east1.run.app/api/v1
 ```
+
+Giá trị trên kết nối tới backend cloud của bản demo. Khi phát triển hoàn toàn trên máy cá nhân, có thể ghi đè thành `http://localhost:8000/api/v1` trong tệp `frontend/.env`.
 
 Backend:
 

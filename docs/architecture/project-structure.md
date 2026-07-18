@@ -22,35 +22,28 @@ Null-Pointer/
 ```text
 frontend/
 ├── public/
+├── e2e/
 ├── src/
+│   ├── App.tsx
 │   ├── app/
-│   │   ├── App.tsx
 │   │   ├── router.tsx
-│   │   ├── providers.tsx
-│   │   └── layouts/
+│   │   └── providers.tsx
 │   ├── features/
-│   │   ├── patient-home/
-│   │   ├── care-routing/
-│   │   ├── active-journey/
-│   │   ├── hospital-map/
-│   │   ├── notifications/
-│   │   ├── support/
+│   │   ├── patient-flow/
 │   │   └── demo-simulation/
 │   ├── entities/
 │   │   ├── patient/
+│   │   ├── clinical-order/
 │   │   ├── care-route/
 │   │   └── journey/
 │   ├── shared/
 │   │   ├── api/
 │   │   ├── config/
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   ├── types/
 │   │   └── ui/
-│   ├── mocks/
+│   ├── assets/
+│   ├── styles/
 │   ├── main.tsx
 │   └── index.css
-├── tests/
 ├── .env.example
 ├── package.json
 ├── tsconfig.json

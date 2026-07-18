@@ -11,9 +11,7 @@ import { RouteDetailScreen } from "../components/RouteDetailScreen";
 import { ConfirmScreen } from "../components/ConfirmScreen";
 import { TodayJourneyScreen } from "../components/TodayJourneyScreen";
 import type { JourneyStep } from "../components/TodayJourneyScreen";
-import { WaitingScreen } from "../components/WaitingScreen";
 import { DirectionsScreen } from "../components/DirectionsScreen";
-import { RouteChangeProposal } from "../components/RouteChangeProposal";
 import { CompletionScreen } from "../components/CompletionScreen";
 import { NavigationBar } from "../components/NavigationBar";
 import type { NavTab } from "../components/NavigationBar";
@@ -40,12 +38,12 @@ type Screen =
   | "routeDetail"
   | "confirmReserve"
   | "todayJourney"
-  | "waiting"
   | "directions"
+  | "support"
   | "complete";
 
 const isJourneyScreen = (screen: Screen) =>
-  ["todayJourney", "waiting", "complete"].includes(screen);
+  ["todayJourney", "complete"].includes(screen);
 
 interface PatientDataStateProps {
   patientCode: string;
@@ -173,7 +171,6 @@ export default function PatientFlowPage() {
   const [journeyStep, setJourneyStep] = useState<JourneyStep>(0);
   const [activeTab, setActiveTab] = useState<NavTab>("today");
   const [prevScreen, setPrevScreen] = useState<Screen>("todayJourney");
-  const [showRouteChange, setShowRouteChange] = useState(false);
   const [isRegeneratingJourney, setIsRegeneratingJourney] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState(patientOrder?.id);
   const [activeReservation, setActiveReservation] = useState<RouteReservation | null>(null);
@@ -267,9 +264,29 @@ export default function PatientFlowPage() {
 
   // Tab overlay content
   function renderTabContent() {
-    if (!isJourneyScreen(displayedScreen) && displayedScreen !== "directions") return null;
-    if (activeTab === "notifications") return <NotificationsScreen />;
-    if (activeTab === "support") return <SupportScreen onCallStaff={() => {}} />;
+    const supportsBottomTabs =
+      displayedScreen === "dashboard" ||
+      isJourneyScreen(displayedScreen) ||
+      displayedScreen === "directions";
+    if (!supportsBottomTabs) return null;
+    if (activeTab === "notifications") {
+      return (
+        <NotificationsScreen
+          activities={patientActivitiesQuery.data ?? []}
+          isLoading={patientActivitiesQuery.isPending}
+          hasError={patientActivitiesQuery.isError}
+          onRetry={() => void patientActivitiesQuery.refetch()}
+        />
+      );
+    }
+    if (activeTab === "support") {
+      return (
+        <SupportScreen
+          encounterId={patientOrder?.encounter_id ?? "Chưa xác định"}
+          location={previousStepDetail?.roomName ?? patientOrder?.doctor_room_code ?? "Chưa xác định"}
+        />
+      );
+    }
     if (activeTab === "journey" && currentRoute) {
       return <JourneyOverviewScreen route={currentRoute} currentStep={displayedJourneyStep} />;
     }
@@ -277,9 +294,23 @@ export default function PatientFlowPage() {
   }
 
   const tabContent = renderTabContent();
-  const showBottomNav = isJourneyScreen(displayedScreen) || displayedScreen === "directions";
+  const showBottomNav =
+    displayedScreen === "dashboard" ||
+    isJourneyScreen(displayedScreen) ||
+    displayedScreen === "directions";
 
-  if (patientCode && (!patientProfile || !patientOrder)) {
+  if (!patientCode) {
+    return (
+      <PatientDataState
+        patientCode="Không xác định"
+        isLoading={false}
+        hasPatientError
+        onRetry={() => undefined}
+      />
+    );
+  }
+
+  if (!patientProfile || !patientOrder) {
     return (
       <PatientDataState
         patientCode={patientCode}
@@ -338,6 +369,7 @@ export default function PatientFlowPage() {
             }}
             onCompleteCurrentService={handleStepDone}
             onViewMap={() => nav("mapView")}
+            onOpenSupport={() => setActiveTab("support")}
           />
         )}
 
@@ -347,8 +379,12 @@ export default function PatientFlowPage() {
             key={currentStepDetail?.id ?? `${currentDestination}-${currentFloor}`}
             destination={currentDestination}
             floor={currentFloor}
-            travelMinutes={currentStepDetail?.travelMinutes}
+            travelMinutes={currentStepDetail?.travelMinutes ?? 0}
             onServiceCompleted={handleStepDone}
+            onNotFound={() => {
+              setPrevScreen("mapView");
+              nav("support");
+            }}
             onBack={() => nav("dashboard")}
           />
         )}
@@ -362,7 +398,10 @@ export default function PatientFlowPage() {
               nav("dashboard");
             }}
             onContinue={() => nav("choosePriority")}
-            onRequestSupport={() => nav("choosePriority")}
+            onRequestSupport={() => {
+              setPrevScreen("newPrescription");
+              nav("support");
+            }}
           />
         )}
 
@@ -370,7 +409,10 @@ export default function PatientFlowPage() {
           <PriorityScreen
             onBack={() => nav("newPrescription")}
             onContinue={(p) => { setPriority(p); nav("chooseRoute"); }}
-            onUpdateAccessibility={() => {}}
+            onUpdateAccessibility={() => {
+              setPrevScreen("choosePriority");
+              nav("support");
+            }}
           />
         )}
 
@@ -378,7 +420,7 @@ export default function PatientFlowPage() {
           <RouteChoiceScreen
             priority={priority}
             scheduleStrategy={scheduleStrategy}
-            dispatchedRoutes={isRegeneratingJourney ? undefined : dispatchedRoutes}
+            dispatchedRoutes={dispatchedRoutes ?? []}
             recalculation={
               isRegeneratingJourney && patientOrder
                 ? {
@@ -395,7 +437,7 @@ export default function PatientFlowPage() {
                   }
                 : undefined
             }
-            doctorName={patientOrder?.doctor_name}
+            doctorName={patientOrder.doctor_name}
             onBack={() => {
               if (isRegeneratingJourney) {
                 setIsRegeneratingJourney(false);
@@ -422,8 +464,8 @@ export default function PatientFlowPage() {
             route={selectedRoute}
             patientCode={patientOrder?.patient_code ?? patientCode ?? ""}
             clinicalOrderId={patientOrder?.id ?? ""}
-            doctorName={patientOrder?.doctor_name}
-            doctorRoomCode={patientOrder?.doctor_room_code}
+            doctorName={patientOrder.doctor_name}
+            doctorRoomCode={patientOrder.doctor_room_code}
             onBack={() => nav("chooseRoute")}
             onConfirmed={(reservation) => {
               setIsRegeneratingJourney(false);
@@ -452,15 +494,6 @@ export default function PatientFlowPage() {
               />
             )}
 
-            {displayedScreen === "waiting" && currentRoute && (
-              <WaitingScreen
-                route={currentRoute}
-                currentStep={displayedJourneyStep}
-                onNext={() => nav("todayJourney")}
-                onNeedSupport={() => setActiveTab("support")}
-              />
-            )}
-
             {displayedScreen === "directions" && (
               <DirectionsScreen
                 origin={directionOrigin}
@@ -474,27 +507,24 @@ export default function PatientFlowPage() {
               />
             )}
 
-            {displayedScreen === "complete" && (
+            {displayedScreen === "complete" && navigationRoute && (
               <CompletionScreen
-                route={currentRoute ?? dispatchedRoutes?.[0]}
-                doctorName={patientOrder?.doctor_name}
-                doctorRoomCode={patientOrder?.doctor_room_code}
-                onShowDirections={() => { setPrevScreen("complete"); nav("directions"); }}
+                route={navigationRoute}
+                doctorName={patientOrder.doctor_name}
                 onBackToDashboard={() => nav("dashboard")}
+              />
+            )}
+
+            {displayedScreen === "support" && (
+              <SupportScreen
+                encounterId={patientOrder?.encounter_id ?? "Chưa xác định"}
+                location={previousStepDetail?.roomName ?? patientOrder?.doctor_room_code ?? "Chưa xác định"}
+                onBack={() => nav(prevScreen)}
               />
             )}
           </>
         )}
       </div>
-
-      {/* Route change proposal overlay */}
-      {showRouteChange && (
-        <RouteChangeProposal
-          onAccept={() => setShowRouteChange(false)}
-          onDecline={() => setShowRouteChange(false)}
-          onRequestSupport={() => { setShowRouteChange(false); setActiveTab("support"); }}
-        />
-      )}
 
       {/* Bottom navigation — only on journey screens */}
       {showBottomNav && (
@@ -504,7 +534,6 @@ export default function PatientFlowPage() {
             setActiveTab(tab);
             if (tab === "today" && displayedScreen !== "todayJourney") nav("todayJourney");
           }}
-          notificationCount={2}
         />
       )}
     </div>

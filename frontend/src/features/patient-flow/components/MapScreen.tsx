@@ -3,24 +3,27 @@ import { ArrowLeft, Navigation, Accessibility, MapPin, ChevronRight, Layers, Che
 import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 
 interface MapScreenProps {
-  destination?: string;
-  floor?: string;
-  travelMinutes?: number;
+  destination: string;
+  floor: string;
+  travelMinutes: number;
   onServiceCompleted: () => void;
+  onNotFound: () => void;
   onBack: () => void;
 }
 
-type Floor = 1 | 2 | 3;
+type Floor = 1 | 2 | 3 | 4 | 5;
 
 const floors: { id: Floor; label: string }[] = [
   { id: 1, label: "Tầng 1" },
   { id: 2, label: "Tầng 2" },
   { id: 3, label: "Tầng 3" },
+  { id: 4, label: "Tầng 4" },
+  { id: 5, label: "Tầng 5" },
 ];
 
 function parseFloor(value: string): Floor {
-  if (value.includes("3")) return 3;
-  if (value.includes("2")) return 2;
+  const parsed = Number(value.match(/\d+/)?.[0]);
+  if (parsed >= 1 && parsed <= 5) return parsed as Floor;
   return 1;
 }
 
@@ -120,10 +123,11 @@ function FloorMap({ floor, showRoute, destination }: { floor: Floor; showRoute: 
   );
 }
 export function MapScreen({
-  destination = "Lấy máu 01",
-  floor = "Tầng 1, khu A",
-  travelMinutes = 0,
+  destination,
+  floor,
+  travelMinutes,
   onServiceCompleted,
+  onNotFound,
   onBack,
 }: MapScreenProps) {
   const destinationFloor = parseFloor(floor);
@@ -203,6 +207,9 @@ export function MapScreen({
           </div>
         </div>
       </div>
+      <p style={{ fontSize: 12 }} className="px-4 pt-2 text-center text-muted-foreground">
+        Sơ đồ minh họa, chưa có định vị trong nhà theo thời gian thực.
+      </p>
 
       {/* Destination info */}
       <div className="mx-4 mt-4 bg-card rounded-xl border border-border p-4">
@@ -214,14 +221,13 @@ export function MapScreen({
             <p style={{ fontSize: 16 }} className="text-foreground">{destination}</p>
             <p style={{ fontSize: 13 }} className="text-muted-foreground">{floor} · Di chuyển khoảng {travelMinutes} phút</p>
           </div>
-          <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full flex-shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span style={{ fontSize: 12 }}>Đang mở</span>
+          <div className="bg-secondary text-primary px-2.5 py-1 rounded-full flex-shrink-0">
+            <span style={{ fontSize: 12 }}>Theo lộ trình đã chọn</span>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-secondary rounded-lg">
           <Accessibility size={14} className="text-primary flex-shrink-0" />
-          <p style={{ fontSize: 13 }} className="text-primary">Có thang máy và lối đi cho xe lăn</p>
+          <p style={{ fontSize: 13 }} className="text-primary">Cần lối tiếp cận hoặc xe lăn? Chọn “Không tìm thấy phòng” để gửi yêu cầu hỗ trợ.</p>
         </div>
       </div>
 
@@ -266,6 +272,8 @@ export function MapScreen({
           Tôi đã khám xong
         </button>
         <button
+          type="button"
+          onClick={onNotFound}
           className="w-full py-3 rounded-xl border border-border bg-card text-foreground text-center"
           style={{ fontSize: 15, minHeight: 48 }}
         >

@@ -2,10 +2,7 @@ import { ChevronRight, Clock, MapPin, Layers, RefreshCw, Info } from "lucide-rea
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
-import {
-  createRouteProposal,
-  mapClinicalOrderRoutes,
-} from "../api/patient-flow-api";
+import { mapClinicalOrderRoutes } from "../api/patient-flow-api";
 import { recalculateLatestPatientRoute } from "../../../entities/clinical-order/api/clinical-order-api";
 import type { Priority, Route, RouteId, ScheduleStrategy } from "../model/patient-flow.types";
 
@@ -22,13 +19,13 @@ const priorityLabels: Record<Priority, string> = {
 interface RouteChoiceScreenProps {
   priority: Priority;
   scheduleStrategy: ScheduleStrategy;
-  dispatchedRoutes?: Route[];
+  dispatchedRoutes: Route[];
   recalculation?: {
     patientCode: string;
     completedServiceCodes: string[];
     startRoomCode?: string;
   };
-  doctorName?: string;
+  doctorName: string;
   onBack: () => void;
   onSelect: (route: Route) => void;
   onViewDetail: (route: Route) => void;
@@ -39,7 +36,7 @@ export function RouteChoiceScreen({
   scheduleStrategy,
   dispatchedRoutes,
   recalculation,
-  doctorName = "BS. Trần Văn Hùng",
+  doctorName,
   onBack,
   onSelect,
   onViewDetail,
@@ -61,32 +58,32 @@ export function RouteChoiceScreen({
       recalculation?.startRoomCode,
     ],
     queryFn: async () => {
-      if (recalculation) {
-        const updatedOrder = await recalculateLatestPatientRoute(
-          recalculation.patientCode,
-          {
-            priority: priority === "lessWalk"
-              ? "less_walk"
-              : priority === "lessCrowd"
-                ? "less_crowd"
-                : priority,
-            schedule_strategy: scheduleStrategy,
-            completed_route_service_codes: recalculation.completedServiceCodes,
-            start_room_code: recalculation.startRoomCode,
-          },
-        );
-        return mapClinicalOrderRoutes(updatedOrder);
+      if (!recalculation) {
+        return [];
       }
-      return createRouteProposal(priority, scheduleStrategy);
+      const updatedOrder = await recalculateLatestPatientRoute(
+        recalculation.patientCode,
+        {
+          priority: priority === "lessWalk"
+            ? "less_walk"
+            : priority === "lessCrowd"
+              ? "less_crowd"
+              : priority,
+          schedule_strategy: scheduleStrategy,
+          completed_route_service_codes: recalculation.completedServiceCodes,
+          start_room_code: recalculation.startRoomCode,
+        },
+      );
+      return mapClinicalOrderRoutes(updatedOrder);
     },
-    enabled: shouldRecalculate || dispatchedRoutes === undefined,
+    enabled: shouldRecalculate,
     staleTime: 0,
   });
   const routes = shouldRecalculate
     ? calculatedRoutes
-    : dispatchedRoutes ?? calculatedRoutes;
-  const isRouteLoading = (shouldRecalculate || dispatchedRoutes === undefined) && isPending;
-  const hasRouteError = (shouldRecalculate || dispatchedRoutes === undefined) && isError;
+    : dispatchedRoutes;
+  const isRouteLoading = shouldRecalculate && isPending;
+  const hasRouteError = shouldRecalculate && isError;
 
   return (
     <div className="flex flex-col min-h-full bg-background">
@@ -211,7 +208,7 @@ export function RouteChoiceScreen({
                   className="w-full py-2.5 text-primary text-center rounded-xl border border-border"
                   style={{ fontSize: 14, minHeight: 44 }}
                 >
-                  Xem chi tiết và đổi phòng
+                  Xem chi tiết lộ trình
                 </button>
               </div>
             </div>

@@ -15,7 +15,6 @@ vi.mock('../../../entities/clinical-order/api/clinical-order-api', () => ({
 }))
 
 vi.mock('../api/patient-flow-api', () => ({
-  createRouteProposal: vi.fn(),
   mapClinicalOrderRoutes: vi.fn(),
 }))
 
@@ -57,6 +56,8 @@ describe('RouteChoiceScreen', () => {
         <RouteChoiceScreen
           priority="fastest"
           scheduleStrategy="leave_fast"
+          dispatchedRoutes={[]}
+          doctorName="BS. Kiểm thử"
           recalculation={{
             patientCode: 'BN-TEST',
             completedServiceCodes: ['blood_test'],

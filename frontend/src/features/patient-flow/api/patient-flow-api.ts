@@ -4,44 +4,8 @@ import type {
   Route,
   RouteId,
   RouteReservation,
-  ScheduleStrategy,
-  Priority,
 } from '../model/patient-flow.types'
 import type { ClinicalOrderDispatch } from '../../../entities/clinical-order/model/clinical-order.schemas'
-
-const routeStepSchema = z.object({
-  id: z.string(),
-  service_code: z.string(),
-  service_name: z.string(),
-  room_code: z.string(),
-  room_name: z.string(),
-  floor: z.string(),
-  wait_minutes_min: z.number(),
-  wait_minutes_max: z.number(),
-  service_minutes: z.number(),
-  travel_minutes: z.number(),
-  is_locked: z.boolean(),
-  lock_reason: z.string().nullable(),
-})
-
-const routeOptionSchema = z.object({
-  id: z.string(),
-  label: z.enum(['recommended', 'less_walk', 'less_crowd']),
-  duration_minutes_min: z.number(),
-  duration_minutes_max: z.number(),
-  distance_meters: z.number(),
-  floor_changes: z.number(),
-  reason: z.string(),
-  steps: z.array(routeStepSchema),
-})
-
-const routeProposalSchema = z.object({
-  id: z.string(),
-  encounter_id: z.string(),
-  updated_at: z.string(),
-  expires_at: z.string(),
-  options: z.array(routeOptionSchema),
-})
 
 const reservationSchema = z.object({
   id: z.string(),
@@ -65,14 +29,6 @@ const supportResponseSchema = z.object({
   estimated_response_minutes_max: z.number(),
 })
 
-const priorityMap: Record<Priority, string> = {
-  system: 'system',
-  fastest: 'fastest',
-  lessWalk: 'less_walk',
-  lessCrowd: 'less_crowd',
-  accessible: 'accessible',
-}
-
 const labelConfig = {
   recommended: {
     id: 'recommended',
@@ -94,64 +50,10 @@ const labelConfig = {
   },
 } as const
 
-export async function createRouteProposal(
-  priority: Priority,
-  scheduleStrategy: ScheduleStrategy,
-): Promise<Route[]> {
-  const proposal = await apiRequest(
-    '/encounters/TM-2026-00847/route-proposals',
-    routeProposalSchema,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        priority: priorityMap[priority],
-        schedule_strategy: scheduleStrategy,
-      }),
-    },
-  )
-
-  return proposal.options.map((option) => {
-    const display = labelConfig[option.label]
-    const visibleSteps = option.steps.filter(
-      (step) => step.service_code !== 'doctor_return',
-    )
-    return {
-      id: display.id as RouteId,
-      proposalId: proposal.id,
-      backendOptionId: option.id,
-      encounterId: proposal.encounter_id,
-      label: display.label,
-      badge: display.badge,
-      badgeColor: display.badgeColor,
-      duration: `${option.duration_minutes_min}–${option.duration_minutes_max} phút`,
-      steps: visibleSteps.map(
-        (step) => `${step.room_name} — ${step.floor}`,
-      ),
-      stepDetails: option.steps.map((step) => ({
-        id: step.id,
-        serviceCode: step.service_code,
-        serviceName: step.service_name,
-        roomCode: step.room_code,
-        roomName: step.room_name,
-        floor: step.floor,
-        waitMinutesMin: step.wait_minutes_min,
-        waitMinutesMax: step.wait_minutes_max,
-        serviceMinutes: step.service_minutes,
-        travelMinutes: step.travel_minutes,
-        isLocked: step.is_locked,
-        lockReason: step.lock_reason ?? undefined,
-      })),
-      distance: option.distance_meters,
-      floorChanges: option.floor_changes,
-      reason: option.reason,
-      updatedAt: 'vừa xong',
-      expiresAt: proposal.expires_at,
-      waitTimes: visibleSteps.map(
-        (step) => `${step.wait_minutes_min}–${step.wait_minutes_max} phút`,
-      ),
-    }
-  })
-}
+const routeUpdateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  hour: '2-digit',
+  minute: '2-digit',
+})
 
 export function mapClinicalOrderRoutes(order: ClinicalOrderDispatch): Route[] {
   const proposal = order.route_proposal
@@ -191,7 +93,7 @@ export function mapClinicalOrderRoutes(order: ClinicalOrderDispatch): Route[] {
       distance: option.distance_meters,
       floorChanges: option.floor_changes,
       reason: option.reason,
-      updatedAt: 'vừa xong',
+      updatedAt: routeUpdateTimeFormatter.format(new Date(proposal.updated_at)),
       expiresAt: proposal.expires_at,
       waitTimes: visibleSteps.map(
         (step) => `${step.wait_minutes_min}–${step.wait_minutes_max} phút`,
@@ -295,13 +197,17 @@ export type SupportType =
   | 'directions'
   | 'visual_assistance'
 
-export async function createSupportRequest(type: SupportType) {
+export async function createSupportRequest(
+  type: SupportType,
+  encounterId: string,
+  location: string,
+) {
   return apiRequest('/support-requests', supportResponseSchema, {
     method: 'POST',
     body: JSON.stringify({
-      encounter_id: 'TM-2026-00847',
+      encounter_id: encounterId,
       support_type: type,
-      location: 'Tầng 2, khu A',
+      location,
     }),
   })
 }

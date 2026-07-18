@@ -12,8 +12,8 @@ interface ConfirmScreenProps {
   route: Route;
   patientCode: string;
   clinicalOrderId: string;
-  doctorName?: string;
-  doctorRoomCode?: string;
+  doctorName: string;
+  doctorRoomCode: string;
   onBack: () => void;
   onConfirmed: (reservation: RouteReservation) => void;
   onChooseAnother: () => void;
@@ -23,8 +23,8 @@ export function ConfirmScreen({
   route,
   patientCode,
   clinicalOrderId,
-  doctorName = "BS. Trần Văn Hùng",
-  doctorRoomCode = "205",
+  doctorName,
+  doctorRoomCode,
   onBack,
   onConfirmed,
   onChooseAnother,
