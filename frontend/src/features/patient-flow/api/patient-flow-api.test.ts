@@ -44,7 +44,7 @@ const order: ClinicalOrderDispatch = {
     options: [
       {
         id: 'OPTION-TEST',
-        label: 'recommended',
+        label: 'balanced',
         duration_minutes_min: 70,
         duration_minutes_max: 80,
         distance_meters: 120,
@@ -99,6 +99,8 @@ describe('mapClinicalOrderRoutes', () => {
     const routes = mapClinicalOrderRoutes(order)
 
     expect(routes).toHaveLength(1)
+    expect(routes[0].id).toBe('balanced')
+    expect(routes[0].badge).toBe('CÂN BẰNG')
     expect(routes[0].steps).toEqual(['Phòng lấy máu 03 — Tầng 1'])
     expect(routes[0].stepDetails).toHaveLength(2)
     expect(routes[0].stepDetails[1].roomCode).toBe('PK-305')

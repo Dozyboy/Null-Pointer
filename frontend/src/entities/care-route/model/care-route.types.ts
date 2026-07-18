@@ -21,7 +21,13 @@ export interface CareRouteStep {
 
 export interface CareRouteOption {
   id: string
-  label: 'recommended' | 'less_walk' | 'less_crowd'
+  label:
+    | 'balanced'
+    | 'early_service'
+    | 'doctor_ready'
+    | 'recommended'
+    | 'less_walk'
+    | 'less_crowd'
   durationMinutesMin: number
   durationMinutesMax: number
   distanceMeters: number

@@ -86,12 +86,12 @@ const order = {
 } as ClinicalOrderDispatch
 
 const fallbackRoute: Route = {
-  id: 'recommended',
+  id: 'balanced',
   proposalId: 'PROPOSAL-NEW',
   backendOptionId: 'OPTION-NEW',
   encounterId: 'TM-TEST',
-  label: 'Khuyến nghị',
-  badge: 'KHUYẾN NGHỊ',
+  label: 'Cân bằng',
+  badge: 'CÂN BẰNG',
   badgeColor: 'bg-primary text-primary-foreground',
   duration: '45–60 phút',
   steps: ['Phòng lấy máu 113 — Tầng 1'],

@@ -290,6 +290,9 @@ export default function PatientFlowPage() {
       : undefined;
   const directionOrigin =
     previousStepDetail?.roomName ?? patientOrder?.doctor_room_code ?? "Vị trí hiện tại";
+  const directionOriginRoomCode =
+    previousStepDetail?.roomCode ?? patientOrder?.doctor_room_code;
+  const directionOriginFloor = previousStepDetail?.floor;
   const currentDestination = currentStepDetail?.roomName ?? "Điểm đến đang được cập nhật";
   const currentFloor = currentStepDetail?.floor ?? "Chưa có thông tin tầng";
   const currentDistance = currentStepDetail
@@ -379,7 +382,11 @@ export default function PatientFlowPage() {
         {displayedScreen === "mapView" && (
           <MapScreen
             key={currentStepDetail?.id ?? `${currentDestination}-${currentFloor}`}
+            origin={directionOrigin}
+            originRoomCode={directionOriginRoomCode}
+            originFloor={directionOriginFloor}
             destination={currentDestination}
+            destinationRoomCode={currentStepDetail?.roomCode}
             floor={currentFloor}
             travelMinutes={currentStepDetail?.travelMinutes ?? 0}
             onServiceCompleted={handleStepDone}
@@ -510,6 +517,8 @@ export default function PatientFlowPage() {
         {displayedScreen === "directions" && (
           <DirectionsScreen
             origin={directionOrigin}
+            originRoomCode={directionOriginRoomCode}
+            originFloor={directionOriginFloor}
             destination={currentDestination}
             roomCode={currentStepDetail?.roomCode}
             floor={currentFloor}

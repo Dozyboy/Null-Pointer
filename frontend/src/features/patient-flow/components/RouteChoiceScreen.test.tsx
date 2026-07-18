@@ -23,12 +23,12 @@ afterEach(() => {
 })
 
 const recalculatedRoute: Route = {
-  id: 'recommended',
+  id: 'doctorReady',
   proposalId: 'PROPOSAL-NEW',
   backendOptionId: 'OPTION-NEW',
   encounterId: 'TM-TEST',
-  label: 'Khuyến nghị',
-  badge: 'KHUYẾN NGHỊ',
+  label: 'Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ',
+  badge: 'KẾT QUẢ ĐẾN BÁC SĨ SỚM',
   badgeColor: 'bg-primary text-primary-foreground',
   duration: '35–45 phút',
   steps: ['Phòng nước tiểu 104 — Tầng 1'],
@@ -71,6 +71,8 @@ describe('RouteChoiceScreen', () => {
     )
 
     expect(await screen.findByText('Phòng nước tiểu 104 — Tầng 1')).toBeInTheDocument()
+    expect(screen.queryByText('Vì sao thứ tự này?')).not.toBeInTheDocument()
+    expect(screen.queryByText('80 m')).not.toBeInTheDocument()
     expect(recalculateLatestPatientRoute).toHaveBeenCalledWith('BN-TEST', {
       priority: 'fastest',
       schedule_strategy: 'leave_fast',

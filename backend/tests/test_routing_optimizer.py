@@ -35,7 +35,12 @@ def test_proposal_uses_live_rooms_and_preserves_required_services() -> None:
 
     assert proposal.algorithm_version == "deterministic-routing-v2"
     assert proposal.simulation_tick == 0
-    assert 1 <= len(proposal.options) <= 3
+    assert len(proposal.options) == 3
+    assert {option.label for option in proposal.options} == {
+        RouteLabel.BALANCED,
+        RouteLabel.EARLY_SERVICE,
+        RouteLabel.DOCTOR_READY,
+    }
     required_codes = {code.value for code in request.required_service_codes}
 
     for option in proposal.options:
@@ -103,7 +108,7 @@ def test_priority_and_schedule_strategy_are_applied_to_recommended_option() -> N
 
     assert proposal.priority == RoutePriority.LESS_WALK
     assert proposal.schedule_strategy == ScheduleStrategy.FINISH_EARLY
-    assert proposal.options[0].label == RouteLabel.RECOMMENDED
+    assert proposal.options[0].label == RouteLabel.EARLY_SERVICE
     assert "dịch vụ" in proposal.options[0].reason.lower()
 
 

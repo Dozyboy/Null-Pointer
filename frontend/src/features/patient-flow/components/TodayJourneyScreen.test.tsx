@@ -7,12 +7,12 @@ import type { Route } from '../model/patient-flow.types'
 import { TodayJourneyScreen } from './TodayJourneyScreen'
 
 const route: Route = {
-  id: 'recommended',
+  id: 'balanced',
   proposalId: 'proposal-1',
   backendOptionId: 'option-1',
   encounterId: 'encounter-1',
   label: 'Lộ trình cân bằng',
-  badge: 'KHUYẾN NGHỊ',
+  badge: 'CÂN BẰNG',
   badgeColor: '#0B6E6E',
   duration: '30 phút',
   steps: ['Xét nghiệm máu'],

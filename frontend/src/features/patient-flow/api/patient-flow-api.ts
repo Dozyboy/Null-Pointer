@@ -23,22 +23,40 @@ const reservationSchema = z.object({
 })
 
 const labelConfig = {
+  balanced: {
+    id: 'balanced',
+    label: 'Cân bằng',
+    badge: 'CÂN BẰNG',
+    badgeColor: 'bg-primary text-primary-foreground',
+  },
+  early_service: {
+    id: 'earlyService',
+    label: 'Ưu tiên vào khám – làm dịch vụ sớm',
+    badge: 'VÀO KHÁM – LÀM DỊCH VỤ SỚM',
+    badgeColor: 'bg-emerald-600 text-white',
+  },
+  doctor_ready: {
+    id: 'doctorReady',
+    label: 'Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ',
+    badge: 'KẾT QUẢ ĐẾN BÁC SĨ SỚM',
+    badgeColor: 'bg-violet-600 text-white',
+  },
   recommended: {
-    id: 'recommended',
-    label: 'Khuyến nghị',
-    badge: 'KHUYẾN NGHỊ',
+    id: 'balanced',
+    label: 'Cân bằng',
+    badge: 'CÂN BẰNG',
     badgeColor: 'bg-primary text-primary-foreground',
   },
   less_walk: {
-    id: 'lessWalk',
-    label: 'Ít đi bộ',
-    badge: 'ÍT ĐI BỘ',
+    id: 'earlyService',
+    label: 'Ưu tiên vào khám – làm dịch vụ sớm',
+    badge: 'VÀO KHÁM – LÀM DỊCH VỤ SỚM',
     badgeColor: 'bg-emerald-600 text-white',
   },
   less_crowd: {
-    id: 'lessCrowd',
-    label: 'Ít đông',
-    badge: 'ÍT ĐÔNG',
+    id: 'doctorReady',
+    label: 'Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ',
+    badge: 'KẾT QUẢ ĐẾN BÁC SĨ SỚM',
     badgeColor: 'bg-violet-600 text-white',
   },
 } as const

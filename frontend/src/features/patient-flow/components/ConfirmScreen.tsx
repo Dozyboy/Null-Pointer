@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, ChevronRight, Clock, Loader2, MapPin, Layers } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Loader2 } from "lucide-react";
 import { AppHeader } from "./AppHeader";
 import {
   confirmRouteReservation,
@@ -156,18 +156,6 @@ export function ConfirmScreen({
           <div className="flex items-center gap-2 mb-3">
             <Clock size={15} className="text-primary" />
             <span style={{ fontSize: 15 }} className="text-foreground">Hoàn tất dự kiến {route.duration}</span>
-          </div>
-          <div className="flex gap-4 mb-4">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <MapPin size={14} />
-              <span style={{ fontSize: 13 }}>{route.distance} m</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Layers size={14} />
-              <span style={{ fontSize: 13 }}>
-                {route.floorChanges === 0 ? "Không đổi tầng" : `Đổi ${route.floorChanges} lần`}
-              </span>
-            </div>
           </div>
           <div className="flex flex-col gap-2">
             {route.steps.map((step, idx) => (

@@ -38,7 +38,7 @@ const notifications: Notification[] = [
     id: "4",
     type: "info",
     title: "Lộ trình đã được xác nhận",
-    body: "Bạn đã vào hàng chờ tại 3 phòng theo lộ trình Khuyến nghị.",
+    body: "Bạn đã vào hàng chờ tại 3 phòng theo lộ trình Cân bằng.",
     time: "10:05",
     read: true,
   },

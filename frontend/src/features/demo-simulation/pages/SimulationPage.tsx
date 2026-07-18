@@ -737,7 +737,7 @@ function OrderPanel({
           <section className="sim-card">
             <div className="sim-card__heading"><div><small>BƯỚC 3</small><h2>Cách hệ thống xếp lộ trình</h2></div><Activity size={22} /></div>
             <div className="sim-form-grid">
-              <label><span>Kiểu xếp lịch trình</span><select value={payload.schedule_strategy} onChange={(event) => updateField('schedule_strategy', event.target.value as DispatchClinicalOrderPayload['schedule_strategy'])}><option value="balanced">Cân bằng</option><option value="finish_early">Ưu tiên thời gian vào khám</option><option value="leave_fast">Ưu tiên kết quả đến tay bác sĩ</option></select></label>
+              <label><span>Kiểu xếp lịch trình</span><select value={payload.schedule_strategy} onChange={(event) => updateField('schedule_strategy', event.target.value as DispatchClinicalOrderPayload['schedule_strategy'])}><option value="balanced">Cân bằng</option><option value="finish_early">Ưu tiên vào khám – làm dịch vụ sớm</option><option value="leave_fast">Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ</option></select></label>
             </div>
           </section>
           {formError && <p className="sim-message is-error" role="alert">{formError}</p>}
