@@ -88,7 +88,17 @@ export interface CreateSimulationRoomPayload {
     | 'urine_test'
     | 'xray'
     | 'ultrasound'
+    | 'soft_tissue_ultrasound'
     | 'ct_scan'
+    | 'cardiac_monitoring'
+    | 'eeg'
+    | 'endoscopy'
+    | 'sedated_endoscopy'
+    | 'echocardiography'
+    | 'vascular_doppler'
+    | 'spirometry'
+    | 'bronchoscopy'
+    | 'mri'
     | 'consultation'
   average_service_minutes: number
   initial_waiting_patients: number

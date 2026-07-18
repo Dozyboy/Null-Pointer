@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Navigation, CheckCircle2, Loader2, Circle, RefreshCw } from "lucide-react";
 import { AppHeader } from "./AppHeader";
+import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 import type { Route } from "../model/patient-flow.types";
 
 export type JourneyStep = 0 | 1 | 2 | 3;
@@ -19,6 +21,7 @@ export function TodayJourneyScreen({
   onNeedSupport,
   onStepDone,
 }: TodayJourneyScreenProps) {
+  const [showCompletionConfirmation, setShowCompletionConfirmation] = useState(false);
   const totalSteps = route.stepDetails.length;
   const currentStepData = route.stepDetails[currentStep] ?? route.stepDetails.at(-1);
   const isDoctorReturn = currentStepData?.serviceCode === "doctor_return";
@@ -133,13 +136,15 @@ export function TodayJourneyScreen({
           </div>
         </div>
 
-        {/* Demo advance */}
+        {/* Hoàn thành dịch vụ hiện tại */}
         <button
-          onClick={onStepDone}
-          className="w-full py-2.5 rounded-xl border border-dashed border-muted-foreground/40 text-muted-foreground text-center"
-          style={{ fontSize: 13 }}
+          type="button"
+          onClick={() => setShowCompletionConfirmation(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-primary-foreground active:scale-[0.98]"
+          style={{ fontSize: 17, minHeight: 56 }}
         >
-          Mô phỏng: Hoàn tất {isDoctorReturn ? "hành trình" : `bước ${currentStep + 1}`} →
+          <CheckCircle2 size={20} />
+          Tôi đã khám xong
         </button>
 
         {/* Support */}
@@ -151,6 +156,17 @@ export function TodayJourneyScreen({
           Tôi cần hỗ trợ
         </button>
       </div>
+
+      {showCompletionConfirmation && (
+        <ServiceCompletionDialog
+          destination={roomName}
+          onCancel={() => setShowCompletionConfirmation(false)}
+          onConfirm={() => {
+            setShowCompletionConfirmation(false);
+            onStepDone();
+          }}
+        />
+      )}
     </div>
   );
 }

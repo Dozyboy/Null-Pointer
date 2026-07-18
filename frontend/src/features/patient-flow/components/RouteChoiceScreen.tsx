@@ -2,7 +2,11 @@ import { ChevronRight, Clock, MapPin, Layers, RefreshCw, Info } from "lucide-rea
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
-import { createRouteProposal } from "../api/patient-flow-api";
+import {
+  createRouteProposal,
+  mapClinicalOrderRoutes,
+} from "../api/patient-flow-api";
+import { recalculateLatestPatientRoute } from "../../../entities/clinical-order/api/clinical-order-api";
 import type { Priority, Route, RouteId, ScheduleStrategy } from "../model/patient-flow.types";
 
 export type { Route } from "../model/patient-flow.types";
@@ -19,6 +23,11 @@ interface RouteChoiceScreenProps {
   priority: Priority;
   scheduleStrategy: ScheduleStrategy;
   dispatchedRoutes?: Route[];
+  recalculation?: {
+    patientCode: string;
+    completedServiceCodes: string[];
+    startRoomCode?: string;
+  };
   doctorName?: string;
   onBack: () => void;
   onSelect: (route: Route) => void;
@@ -29,26 +38,55 @@ export function RouteChoiceScreen({
   priority,
   scheduleStrategy,
   dispatchedRoutes,
+  recalculation,
   doctorName = "BS. Trần Văn Hùng",
   onBack,
   onSelect,
   onViewDetail,
 }: RouteChoiceScreenProps) {
   const [showReasonFor, setShowReasonFor] = useState<RouteId | null>(null);
+  const shouldRecalculate = recalculation !== undefined;
   const {
     data: calculatedRoutes = [],
     isPending,
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["route-proposal", priority, scheduleStrategy],
-    queryFn: () => createRouteProposal(priority, scheduleStrategy),
-    enabled: dispatchedRoutes === undefined,
+    queryKey: [
+      "route-proposal",
+      priority,
+      scheduleStrategy,
+      recalculation?.patientCode,
+      recalculation?.completedServiceCodes,
+      recalculation?.startRoomCode,
+    ],
+    queryFn: async () => {
+      if (recalculation) {
+        const updatedOrder = await recalculateLatestPatientRoute(
+          recalculation.patientCode,
+          {
+            priority: priority === "lessWalk"
+              ? "less_walk"
+              : priority === "lessCrowd"
+                ? "less_crowd"
+                : priority,
+            schedule_strategy: scheduleStrategy,
+            completed_route_service_codes: recalculation.completedServiceCodes,
+            start_room_code: recalculation.startRoomCode,
+          },
+        );
+        return mapClinicalOrderRoutes(updatedOrder);
+      }
+      return createRouteProposal(priority, scheduleStrategy);
+    },
+    enabled: shouldRecalculate || dispatchedRoutes === undefined,
     staleTime: 0,
   });
-  const routes = dispatchedRoutes ?? calculatedRoutes;
-  const isRouteLoading = dispatchedRoutes === undefined && isPending;
-  const hasRouteError = dispatchedRoutes === undefined && isError;
+  const routes = shouldRecalculate
+    ? calculatedRoutes
+    : dispatchedRoutes ?? calculatedRoutes;
+  const isRouteLoading = (shouldRecalculate || dispatchedRoutes === undefined) && isPending;
+  const hasRouteError = (shouldRecalculate || dispatchedRoutes === undefined) && isError;
 
   return (
     <div className="flex flex-col min-h-full bg-background">

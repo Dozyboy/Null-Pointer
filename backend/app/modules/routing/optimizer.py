@@ -1,7 +1,7 @@
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from itertools import permutations, product
+from itertools import islice, permutations, product
 from math import ceil
 
 from app.modules.routing.catalog import (
@@ -24,7 +24,7 @@ from app.modules.simulation.schemas import (
 )
 from app.shared.enums import RoutePriority
 
-ALGORITHM_VERSION = "deterministic-routing-v1"
+ALGORITHM_VERSION = "deterministic-routing-v2"
 MAX_CANDIDATES = 200
 
 
@@ -50,6 +50,9 @@ class RouteCandidate:
     distance_meters: int
     floor_changes: int
     total_wait_minutes: int
+    tests_wait_minutes: int
+    total_queue_patients: int
+    first_service_start_minutes: int
     tests_completed_minutes: int
     results_ready_minutes: int
     doctor_return_minutes: int | None
@@ -144,9 +147,15 @@ class DeterministicRoutingOptimizer:
         sequences = self._service_sequences(service_definitions)
         candidates: list[RouteCandidate] = []
 
-        for sequence in sequences:
+        sequence_limit = min(len(sequences), MAX_CANDIDATES)
+        candidates_per_sequence = max(1, MAX_CANDIDATES // sequence_limit)
+
+        for sequence in sequences[:sequence_limit]:
             options_in_sequence = [room_options[service.code] for service in sequence]
-            for selected_rooms in product(*options_in_sequence):
+            for selected_rooms in islice(
+                product(*options_in_sequence),
+                candidates_per_sequence,
+            ):
                 candidates.append(
                     self._simulate_candidate(
                         snapshot,
@@ -155,8 +164,6 @@ class DeterministicRoutingOptimizer:
                         selected_rooms,
                     )
                 )
-                if len(candidates) >= MAX_CANDIDATES:
-                    return candidates
 
         return candidates
 
@@ -190,6 +197,14 @@ class DeterministicRoutingOptimizer:
                 raise NoFeasibleRouteError(
                     f"Không có phòng phù hợp đang hoạt động cho dịch vụ {service.name}."
                 )
+            matching_rooms.sort(
+                key=lambda room: (
+                    room.status == RoomStatus.OVERLOADED,
+                    room.estimated_wait_minutes,
+                    room.waiting_patients,
+                    room.code,
+                )
+            )
             options[service.code] = matching_rooms
 
         return options
@@ -229,6 +244,9 @@ class DeterministicRoutingOptimizer:
         total_distance = 0
         floor_changes = 0
         total_wait = 0
+        tests_wait = 0
+        total_queue_patients = 0
+        first_service_start: int | None = None
         tests_completed = 0
         results_ready = 0
         doctor_return: int | None = None
@@ -242,7 +260,14 @@ class DeterministicRoutingOptimizer:
             floor_changes += changed_floors
             arrival_minutes = elapsed_minutes + travel_minutes
 
-            projected_queue = max(0, room.estimated_wait_minutes - arrival_minutes)
+            queue_from_patient_count = (
+                room.waiting_patients * room.average_service_minutes
+            )
+            current_room_wait = max(
+                room.estimated_wait_minutes,
+                queue_from_patient_count,
+            )
+            projected_queue = max(0, current_room_wait - arrival_minutes)
             wait_min = max(0, round(projected_queue * 0.75))
             wait_max = max(wait_min, ceil(projected_queue * 1.25) + 2)
             expected_wait = (wait_min + wait_max) // 2
@@ -261,6 +286,10 @@ class DeterministicRoutingOptimizer:
             if service.locked_position == LockedPosition.LAST:
                 doctor_return = complete_minutes
             else:
+                tests_wait += expected_wait
+                total_queue_patients += room.waiting_patients
+                if first_service_start is None:
+                    first_service_start = arrival_minutes + expected_wait
                 tests_completed = max(tests_completed, complete_minutes)
                 results_ready = max(results_ready, result_ready_minutes)
 
@@ -293,6 +322,9 @@ class DeterministicRoutingOptimizer:
             distance_meters=total_distance,
             floor_changes=floor_changes,
             total_wait_minutes=total_wait,
+            tests_wait_minutes=tests_wait,
+            total_queue_patients=total_queue_patients,
+            first_service_start_minutes=first_service_start or 0,
             tests_completed_minutes=tests_completed,
             results_ready_minutes=results_ready,
             doctor_return_minutes=doctor_return,
@@ -311,25 +343,32 @@ class DeterministicRoutingOptimizer:
 
         if strategy == ScheduleStrategy.FINISH_EARLY:
             score = (
-                candidate.tests_completed_minutes * 0.5
-                + candidate.results_ready_minutes * 0.35
-                + expected_duration * 0.15
+                candidate.tests_completed_minutes * 0.55
+                + candidate.first_service_start_minutes * 0.25
+                + candidate.tests_wait_minutes * 0.15
+                + candidate.total_queue_patients * 0.5
+                + candidate.distance_meters / 100
             )
         elif strategy == ScheduleStrategy.LEAVE_FAST:
-            score = expected_duration * 0.8 + (
-                candidate.doctor_return_minutes or expected_duration
-            ) * 0.2
+            doctor_ready = candidate.doctor_return_minutes or expected_duration
+            score = (
+                doctor_ready * 0.7
+                + candidate.results_ready_minutes * 0.25
+                + candidate.total_wait_minutes * 0.05
+            )
         else:
             score = (
-                expected_duration * 0.5
+                expected_duration * 0.35
                 + candidate.results_ready_minutes * 0.2
-                + candidate.total_wait_minutes * 0.15
+                + candidate.tests_completed_minutes * 0.1
+                + candidate.total_wait_minutes * 0.2
+                + candidate.total_queue_patients * 0.5
                 + candidate.distance_meters / 30
                 + candidate.floor_changes * 4
             )
 
         if priority == RoutePriority.FASTEST:
-            score += expected_duration * 0.5
+            score += expected_duration * 0.1
         elif priority == RoutePriority.LESS_WALK:
             score += candidate.distance_meters / 6 + candidate.floor_changes * 12
         elif priority == RoutePriority.LESS_CROWD:
@@ -402,8 +441,17 @@ class DeterministicRoutingOptimizer:
             RoutePriority.ACCESSIBLE: "Ưu tiên hành trình phù hợp nhu cầu hỗ trợ di chuyển.",
         }
         strategy_reasons = {
-            ScheduleStrategy.BALANCED: " Chiến lược trong ngày là cân bằng.",
-            ScheduleStrategy.FINISH_EARLY: " Các xét nghiệm được ưu tiên hoàn tất sớm.",
-            ScheduleStrategy.LEAVE_FAST: " Tổng thời gian ở bệnh viện được ưu tiên rút ngắn.",
+            ScheduleStrategy.BALANCED: (
+                " Hệ thống cân bằng hàng chờ, thời gian di chuyển "
+                "và thời điểm có kết quả."
+            ),
+            ScheduleStrategy.FINISH_EARLY: (
+                " Hệ thống ưu tiên đưa người bệnh vào phòng dịch vụ và hoàn thành "
+                "các dịch vụ sớm; thời gian chờ bác sĩ có thể dài hơn."
+            ),
+            ScheduleStrategy.LEAVE_FAST: (
+                " Hệ thống ưu tiên thời điểm bác sĩ có đủ toàn bộ kết quả "
+                "để chẩn đoán sớm nhất."
+            ),
         }
         return priority_reasons[priority] + strategy_reasons[strategy]

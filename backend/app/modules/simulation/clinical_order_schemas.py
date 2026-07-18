@@ -4,7 +4,11 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, field_validator
 
 from app.modules.clinical_orders.entities import FastingPolicy, RoomServiceType
-from app.modules.routing.schemas import RouteProposalResponse, ScheduleStrategy
+from app.modules.routing.schemas import (
+    RouteProposalResponse,
+    ScheduleStrategy,
+    ServiceCode,
+)
 from app.shared.enums import RoutePriority
 
 
@@ -43,6 +47,33 @@ class DispatchClinicalOrderRequest(BaseModel):
         if len(normalized) != len(set(normalized)):
             raise ValueError("Mỗi chỉ định chỉ được gửi một lần.")
         return normalized
+
+
+class RecalculateClinicalOrderRouteRequest(BaseModel):
+    priority: RoutePriority = RoutePriority.FASTEST
+    schedule_strategy: ScheduleStrategy = ScheduleStrategy.BALANCED
+    completed_route_service_codes: list[ServiceCode] = Field(
+        default_factory=list,
+        max_length=15,
+    )
+    start_room_code: str | None = Field(default=None, min_length=2, max_length=40)
+
+    @field_validator("completed_route_service_codes")
+    @classmethod
+    def validate_completed_services(
+        cls,
+        value: list[ServiceCode],
+    ) -> list[ServiceCode]:
+        if len(value) != len(set(value)):
+            raise ValueError("Mỗi dịch vụ đã hoàn thành chỉ được gửi một lần.")
+        if ServiceCode.DOCTOR_RETURN in value:
+            raise ValueError("Không thể đánh dấu bước quay lại bác sĩ là dịch vụ đã hoàn thành.")
+        return value
+
+    @field_validator("start_room_code", mode="before")
+    @classmethod
+    def normalize_start_room_code(cls, value: object) -> object:
+        return value.strip().upper() if isinstance(value, str) else value
 
 
 class MatchedRoomResponse(BaseModel):

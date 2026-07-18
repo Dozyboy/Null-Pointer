@@ -5,6 +5,7 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   Activity,
   Building2,
@@ -24,6 +25,9 @@ import {
   X,
 } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { getPatients } from '../../../entities/patient/api/patient-api'
+import { buildPatientAccessUrl } from '../../../entities/patient/lib/patient-access'
+import type { PatientProfile } from '../../../entities/patient/model/patient.schemas'
 import { dispatchClinicalOrder } from '../api/clinical-order-api'
 import { getClinicalServices } from '../api/clinical-service-api'
 import {
@@ -45,7 +49,14 @@ import './hospital-simulator.css'
 
 const simulationQueryKey = ['demo-simulation'] as const
 const catalogQueryKey = ['simulation-clinical-service-catalog'] as const
+const patientsQueryKey = ['patients'] as const
 type SimulatorTab = 'overview' | 'rooms' | 'orders'
+
+const patientGenderLabels: Record<PatientProfile['gender'], string> = {
+  male: 'Nam',
+  female: 'Nữ',
+  other: 'Khác',
+}
 
 const roomStatusContent: Record<RoomStatus, { label: string; tone: string }> = {
   available: { label: 'Sẵn sàng', tone: 'ready' },
@@ -59,7 +70,17 @@ const roomTypeLabels: Record<string, string> = {
   urine_test: 'Nhận mẫu nước tiểu',
   xray: 'X-quang',
   ultrasound: 'Siêu âm',
+  soft_tissue_ultrasound: 'Siêu âm tuyến giáp / tuyến vú / phần mềm',
   ct_scan: 'Chụp CT',
+  cardiac_monitoring: 'Điện tâm đồ / Holter',
+  eeg: 'Điện não đồ',
+  endoscopy: 'Nội soi không gây mê',
+  sedated_endoscopy: 'Nội soi có gây mê',
+  echocardiography: 'Siêu âm tim',
+  vascular_doppler: 'Siêu âm Doppler mạch máu',
+  spirometry: 'Đo chức năng hô hấp',
+  bronchoscopy: 'Nội soi phế quản',
+  mri: 'Chụp MRI',
   consultation: 'Phòng khám',
 }
 
@@ -117,6 +138,10 @@ function formatClock(value: string) {
   }).format(new Date(value))
 }
 
+function formatPatientDate(value: string) {
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(value))
+}
+
 function RoomStatusBadge({ room }: { room: RoomSnapshot }) {
   const content = roomStatusContent[room.status]
   return (
@@ -146,6 +171,10 @@ export function SimulationPage() {
   const catalogQuery = useQuery({
     queryKey: catalogQueryKey,
     queryFn: getClinicalServices,
+  })
+  const patientsQuery = useQuery({
+    queryKey: patientsQueryKey,
+    queryFn: getPatients,
   })
 
   const advanceMutation = useMutation({
@@ -273,7 +302,14 @@ export function SimulationPage() {
         )}
 
         {snapshot && activeTab === 'orders' && (
-          <OrderPanel services={catalogQuery.data?.services ?? []} isLoading={catalogQuery.isPending} />
+          <OrderPanel
+            services={catalogQuery.data?.services ?? []}
+            patients={patientsQuery.data ?? []}
+            isLoading={catalogQuery.isPending}
+            isPatientsLoading={patientsQuery.isPending}
+            hasPatientsError={patientsQuery.isError}
+            onRetryPatients={() => patientsQuery.refetch()}
+          />
         )}
       </section>
     </main>
@@ -399,7 +435,23 @@ function RoomsPanel(props: RoomsPanelProps) {
   )
 }
 
-function OrderPanel({ services, isLoading }: { services: ClinicalService[]; isLoading: boolean }) {
+interface OrderPanelProps {
+  services: ClinicalService[]
+  patients: PatientProfile[]
+  isLoading: boolean
+  isPatientsLoading: boolean
+  hasPatientsError: boolean
+  onRetryPatients: () => void
+}
+
+function OrderPanel({
+  services,
+  patients,
+  isLoading,
+  isPatientsLoading,
+  hasPatientsError,
+  onRetryPatients,
+}: OrderPanelProps) {
   const [payload, setPayload] = useState(initialOrder)
   const [formError, setFormError] = useState<string | null>(null)
   const [serviceType, setServiceType] = useState<
@@ -433,6 +485,13 @@ function OrderPanel({ services, isLoading }: { services: ClinicalService[]; isLo
   const selectedServices = activeServices.filter((service) =>
     payload.clinical_service_codes.includes(service.code),
   )
+  const selectedPatient =
+    patients.find((patient) => patient.id === payload.patient_code) ??
+    patients[0] ??
+    null
+  const patientUrl = selectedPatient
+    ? buildPatientAccessUrl(window.location.origin, selectedPatient.id)
+    : ''
 
   function updateField<Key extends keyof DispatchClinicalOrderPayload>(key: Key, value: DispatchClinicalOrderPayload[Key]) {
     setPayload((current) => ({ ...current, [key]: value }))
@@ -444,13 +503,38 @@ function OrderPanel({ services, isLoading }: { services: ClinicalService[]; isLo
     setServiceType(value)
     setViewedServiceCode(null)
   }
+  function selectPatient(patientId: string) {
+    const patient = patients.find((item) => item.id === patientId)
+    if (!patient) return
+    dispatchMutation.reset()
+    setFormError(null)
+    setPayload((current) => ({
+      ...current,
+      patient_code: patient.id,
+      patient_name: patient.full_name,
+      encounter_id: patient.current_encounter_id,
+      doctor_name: patient.attending_doctor_name,
+      doctor_room_code: patient.doctor_room_code,
+    }))
+  }
   function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!selectedPatient) {
+      setFormError('Hãy chọn một bệnh nhân đã lưu trong cơ sở dữ liệu.')
+      return
+    }
     if (payload.clinical_service_codes.length === 0) {
       setFormError('Hãy chọn ít nhất một chỉ định của bác sĩ.')
       return
     }
-    dispatchMutation.mutate(payload)
+    dispatchMutation.mutate({
+      ...payload,
+      patient_code: selectedPatient.id,
+      patient_name: selectedPatient.full_name,
+      encounter_id: selectedPatient.current_encounter_id,
+      doctor_name: selectedPatient.attending_doctor_name,
+      doctor_room_code: selectedPatient.doctor_room_code,
+    })
   }
 
   const result = dispatchMutation.data
@@ -465,12 +549,67 @@ function OrderPanel({ services, isLoading }: { services: ClinicalService[]; isLo
         <form className="sim-order-form" onSubmit={submitOrder}>
           <section className="sim-card">
             <div className="sim-card__heading"><div><small>BƯỚC 1</small><h2>Bệnh nhân và lượt khám</h2></div><UsersRound size={22} /></div>
-            <div className="sim-form-grid">
-              <label><span>Mã bệnh nhân *</span><input value={payload.patient_code} onChange={(event) => updateField('patient_code', event.target.value.toUpperCase())} required /></label>
-              <label><span>Họ tên *</span><input value={payload.patient_name} onChange={(event) => updateField('patient_name', event.target.value)} required /></label>
-              <label><span>Mã lượt khám *</span><input value={payload.encounter_id} onChange={(event) => updateField('encounter_id', event.target.value.toUpperCase())} required /></label>
-              <label><span>Bác sĩ chỉ định *</span><input value={payload.doctor_name} onChange={(event) => updateField('doctor_name', event.target.value)} required /></label>
-            </div>
+            {isPatientsLoading && <p className="sim-inline-state">Đang tải danh sách bệnh nhân từ cơ sở dữ liệu…</p>}
+            {hasPatientsError && (
+              <div className="sim-patient-error" role="alert">
+                <p>Không tải được danh sách bệnh nhân.</p>
+                <button type="button" onClick={onRetryPatients}>Thử lại</button>
+              </div>
+            )}
+            {!isPatientsLoading && !hasPatientsError && patients.length === 0 && (
+              <p className="sim-inline-state">Cơ sở dữ liệu chưa có bệnh nhân.</p>
+            )}
+            {selectedPatient && (
+              <div className="sim-patient-selection">
+                <label className="sim-patient-select">
+                  <span>Chọn bệnh nhân để bắn chỉ định</span>
+                  <select
+                    value={selectedPatient.id}
+                    onChange={(event) => selectPatient(event.target.value)}
+                  >
+                    {patients.map((patient) => (
+                      <option value={patient.id} key={patient.id}>
+                        {patient.id} — {patient.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="sim-patient-profile">
+                  <div className="sim-patient-profile__details">
+                    <header>
+                      <div>
+                        <small>HỒ SƠ ĐÃ LƯU TRONG DB</small>
+                        <h3>{selectedPatient.full_name}</h3>
+                        <p>{selectedPatient.id} · {patientGenderLabels[selectedPatient.gender]} · sinh {formatPatientDate(selectedPatient.date_of_birth)}</p>
+                      </div>
+                      <strong>Nhóm máu {selectedPatient.blood_type}</strong>
+                    </header>
+                    <dl>
+                      <div><dt>Mã lượt khám</dt><dd>{selectedPatient.current_encounter_id}</dd></div>
+                      <div><dt>Bảo hiểm y tế</dt><dd>{selectedPatient.health_insurance_number}</dd></div>
+                      <div><dt>Điện thoại</dt><dd>{selectedPatient.phone}</dd></div>
+                      <div><dt>Bác sĩ / phòng khám</dt><dd>{selectedPatient.attending_doctor_name} · {selectedPatient.doctor_room_code}</dd></div>
+                      <div className="is-wide"><dt>Địa chỉ</dt><dd>{selectedPatient.address}</dd></div>
+                      <div className="is-wide"><dt>Dị ứng / bệnh nền</dt><dd>{[...selectedPatient.allergies, ...selectedPatient.chronic_conditions].join(', ') || 'Chưa ghi nhận'}</dd></div>
+                    </dl>
+                  </div>
+                  <aside className="sim-patient-qr">
+                    <QRCodeSVG
+                      value={patientUrl}
+                      size={132}
+                      level="M"
+                      includeMargin
+                      title={'Mở ứng dụng của ' + selectedPatient.id}
+                    />
+                    <strong>Quét để mở ứng dụng bệnh nhân</strong>
+                    <span>Mã: {selectedPatient.id}</span>
+                    <a href={patientUrl} target="_blank" rel="noreferrer">
+                      Mở đường dẫn <ExternalLink size={13} />
+                    </a>
+                  </aside>
+                </div>
+              </div>
+            )}
           </section>
           <section className="sim-card">
             <div className="sim-card__heading"><div><small>BƯỚC 2</small><h2>Chọn chỉ định đã ký</h2></div><ClipboardList size={22} /></div>
@@ -598,7 +737,7 @@ function OrderPanel({ services, isLoading }: { services: ClinicalService[]; isLo
           <section className="sim-card">
             <div className="sim-card__heading"><div><small>BƯỚC 3</small><h2>Cách hệ thống xếp lộ trình</h2></div><Activity size={22} /></div>
             <div className="sim-form-grid">
-              <label><span>Kiểu xếp lịch trình</span><select value={payload.schedule_strategy} onChange={(event) => updateField('schedule_strategy', event.target.value as DispatchClinicalOrderPayload['schedule_strategy'])}><option value="balanced">Cân bằng</option><option value="finish_early">Hoàn thành xét nghiệm sớm</option><option value="leave_fast">Ưu tiên ra viện sớm</option></select></label>
+              <label><span>Kiểu xếp lịch trình</span><select value={payload.schedule_strategy} onChange={(event) => updateField('schedule_strategy', event.target.value as DispatchClinicalOrderPayload['schedule_strategy'])}><option value="balanced">Cân bằng</option><option value="finish_early">Ưu tiên làm dịch vụ sớm</option><option value="leave_fast">Ưu tiên gặp bác sĩ chẩn đoán</option></select></label>
               <label><span>Tiêu chí chọn phòng</span><select value={payload.priority} onChange={(event) => updateField('priority', event.target.value as DispatchClinicalOrderPayload['priority'])}><option value="fastest">Nhanh nhất</option><option value="less_walk">Ít đi bộ</option><option value="less_crowd">Ít đông</option><option value="accessible">Hỗ trợ di chuyển</option></select></label>
             </div>
           </section>

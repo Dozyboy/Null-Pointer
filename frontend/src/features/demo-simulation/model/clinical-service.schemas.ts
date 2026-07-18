@@ -25,7 +25,17 @@ export const roomServiceTypeSchema = z.enum([
   'urine_test',
   'xray',
   'ultrasound',
+  'soft_tissue_ultrasound',
   'ct_scan',
+  'cardiac_monitoring',
+  'eeg',
+  'endoscopy',
+  'sedated_endoscopy',
+  'echocardiography',
+  'vascular_doppler',
+  'spirometry',
+  'bronchoscopy',
+  'mri',
 ])
 
 export const clinicalServiceSchema = z.object({

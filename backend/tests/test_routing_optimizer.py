@@ -2,7 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.modules.routing.catalog import SERVICE_CATALOG, ServiceDefinition
 from app.modules.routing.exceptions import NoFeasibleRouteError
+from app.modules.routing.optimizer import DeterministicRoutingOptimizer
 from app.modules.routing.schemas import (
     CreateRouteProposalRequest,
     RouteLabel,
@@ -11,6 +13,11 @@ from app.modules.routing.schemas import (
 )
 from app.modules.routing.service import RouteProposalService
 from app.modules.simulation.runtime import simulation_service
+from app.modules.simulation.schemas import (
+    EquipmentStatus,
+    RoomSnapshot,
+    RoomStatus,
+)
 from app.shared.enums import RoutePriority
 
 client = TestClient(app)
@@ -26,7 +33,7 @@ def test_proposal_uses_live_rooms_and_preserves_required_services() -> None:
 
     proposal = RouteProposalService().create_proposal("TM-DEMO-001", request)
 
-    assert proposal.algorithm_version == "deterministic-routing-v1"
+    assert proposal.algorithm_version == "deterministic-routing-v2"
     assert proposal.simulation_tick == 0
     assert 1 <= len(proposal.options) <= 3
     required_codes = {code.value for code in request.required_service_codes}
@@ -67,11 +74,17 @@ def test_pausing_selected_room_recalculates_all_options() -> None:
 
 
 def test_no_active_room_for_required_service_fails_closed() -> None:
-    simulation_service.set_room_operation(
-        "XQ-201",
-        operational=False,
-        reason="Giả lập thiết bị hỏng.",
-    )
+    xray_room_codes = [
+        room.code
+        for room in simulation_service.get_snapshot().rooms
+        if room.service_type == "xray"
+    ]
+    for room_code in xray_room_codes:
+        simulation_service.set_room_operation(
+            room_code,
+            operational=False,
+            reason="Giả lập thiết bị hỏng.",
+        )
 
     with pytest.raises(NoFeasibleRouteError, match="Chụp X-quang ngực"):
         RouteProposalService().create_proposal(
@@ -91,7 +104,7 @@ def test_priority_and_schedule_strategy_are_applied_to_recommended_option() -> N
     assert proposal.priority == RoutePriority.LESS_WALK
     assert proposal.schedule_strategy == ScheduleStrategy.FINISH_EARLY
     assert proposal.options[0].label == RouteLabel.RECOMMENDED
-    assert "xét nghiệm" in proposal.options[0].reason.lower()
+    assert "dịch vụ" in proposal.options[0].reason.lower()
 
 
 def test_subset_of_services_is_not_extended_by_algorithm() -> None:
@@ -126,11 +139,17 @@ def test_api_rejects_unknown_or_duplicate_service_codes() -> None:
 
 
 def test_api_returns_conflict_instead_of_unsafe_partial_route() -> None:
-    simulation_service.set_room_operation(
-        "XQ-201",
-        operational=False,
-        reason="Giả lập thiết bị hỏng.",
-    )
+    xray_room_codes = [
+        room.code
+        for room in simulation_service.get_snapshot().rooms
+        if room.service_type == "xray"
+    ]
+    for room_code in xray_room_codes:
+        simulation_service.set_room_operation(
+            room_code,
+            operational=False,
+            reason="Giả lập thiết bị hỏng.",
+        )
 
     response = client.post(
         "/api/v1/encounters/TM-DEMO-007/route-proposals",
@@ -150,3 +169,114 @@ def test_proposal_records_current_simulation_tick() -> None:
     )
 
     assert proposal.simulation_tick == 1
+
+
+def test_room_queue_and_wait_time_change_the_selected_room() -> None:
+    for room_code in ("XQ-201", "XQ-202", "XQ-203"):
+        simulation_service.set_room_operation(room_code, operational=True, reason=None)
+        simulation_service.adjust_room_queue(room_code, -50)
+    simulation_service.adjust_room_queue("XQ-201", 8)
+    simulation_service.adjust_room_queue("XQ-203", 4)
+
+    service = RouteProposalService()
+    request = CreateRouteProposalRequest(
+        required_service_codes=[ServiceCode.CHEST_XRAY],
+        schedule_strategy=ScheduleStrategy.BALANCED,
+    )
+    before = service.create_proposal("TM-QUEUE-001", request)
+
+    assert before.options[0].steps[0].room_code == "XQ-202"
+
+    simulation_service.adjust_room_queue("XQ-202", 12)
+    simulation_service.adjust_room_queue("XQ-201", -50)
+    after = service.create_proposal("TM-QUEUE-001", request)
+
+    assert after.options[0].steps[0].room_code == "XQ-201"
+    assert after.options[0].total_wait_minutes < before.options[0].duration_minutes_max
+
+
+def test_schedule_strategies_optimize_different_completion_targets() -> None:
+    base_snapshot = simulation_service.get_snapshot()
+    now = base_snapshot.simulation_time
+
+    def room(
+        code: str,
+        name: str,
+        floor: str,
+        service_type: str,
+    ) -> RoomSnapshot:
+        return RoomSnapshot(
+            code=code,
+            location_code=code,
+            name=name,
+            department="Kiểm thử điều phối",
+            floor=floor,
+            service_type=service_type,
+            status=RoomStatus.AVAILABLE,
+            equipment_status=EquipmentStatus.OPERATIONAL,
+            waiting_patients=0,
+            waiting_patient_codes=[],
+            current_patient_code=None,
+            average_service_minutes=5,
+            estimated_wait_minutes=0,
+            status_reason=None,
+            updated_at=now,
+        )
+
+    snapshot = base_snapshot.model_copy(
+        update={
+            "rooms": [
+                room("PK-201", "Phòng bác sĩ", "Tầng 2", "consultation"),
+                room("NT-202", "Phòng xét nghiệm gần", "Tầng 2", "urine_test"),
+                room("XQ-501", "Phòng trả kết quả lâu", "Tầng 5", "xray"),
+            ]
+        }
+    )
+    catalog = {
+        ServiceCode.URINE_TEST: ServiceDefinition(
+            code=ServiceCode.URINE_TEST,
+            name="Dịch vụ có thể làm ngay",
+            room_service_type="urine_test",
+            result_turnaround_minutes=0,
+        ),
+        ServiceCode.CHEST_XRAY: ServiceDefinition(
+            code=ServiceCode.CHEST_XRAY,
+            name="Dịch vụ trả kết quả lâu",
+            room_service_type="xray",
+            result_turnaround_minutes=100,
+        ),
+        ServiceCode.DOCTOR_RETURN: SERVICE_CATALOG[ServiceCode.DOCTOR_RETURN],
+    }
+    optimizer = DeterministicRoutingOptimizer()
+
+    finish_early = optimizer.optimize(
+        snapshot,
+        CreateRouteProposalRequest(
+            schedule_strategy=ScheduleStrategy.FINISH_EARLY,
+            required_service_codes=[
+                ServiceCode.CHEST_XRAY,
+                ServiceCode.URINE_TEST,
+                ServiceCode.DOCTOR_RETURN,
+            ],
+            start_room_code="PK-201",
+        ),
+        service_catalog=catalog,
+    )[0].candidate
+    doctor_ready = optimizer.optimize(
+        snapshot,
+        CreateRouteProposalRequest(
+            schedule_strategy=ScheduleStrategy.LEAVE_FAST,
+            required_service_codes=[
+                ServiceCode.CHEST_XRAY,
+                ServiceCode.URINE_TEST,
+                ServiceCode.DOCTOR_RETURN,
+            ],
+            start_room_code="PK-201",
+        ),
+        service_catalog=catalog,
+    )[0].candidate
+
+    assert finish_early.steps[0].service.code == ServiceCode.URINE_TEST
+    assert doctor_ready.steps[0].service.code == ServiceCode.CHEST_XRAY
+    assert finish_early.tests_completed_minutes < doctor_ready.tests_completed_minutes
+    assert doctor_ready.doctor_return_minutes < finish_early.doctor_return_minutes

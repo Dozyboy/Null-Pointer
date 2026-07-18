@@ -1,4 +1,4 @@
-import { CheckCircle2, Navigation, FileText, Clock } from "lucide-react";
+import { CheckCircle2, Navigation, FileText, Clock, House } from "lucide-react";
 import type { Route } from "../model/patient-flow.types";
 
 interface CompletionScreenProps {
@@ -6,6 +6,7 @@ interface CompletionScreenProps {
   doctorName?: string;
   doctorRoomCode?: string;
   onShowDirections: () => void;
+  onBackToDashboard: () => void;
 }
 
 const completedServices = [
@@ -19,6 +20,7 @@ export function CompletionScreen({
   doctorName = "BS. Trần Văn Hùng",
   doctorRoomCode = "205",
   onShowDirections,
+  onBackToDashboard,
 }: CompletionScreenProps) {
   const services = route
     ? route.stepDetails
@@ -97,14 +99,24 @@ export function CompletionScreen({
       </div>
 
       {/* Action */}
-      <div className="px-4 mt-4">
+      <div className="px-4 mt-4 flex flex-col gap-3">
         <button
+          type="button"
           onClick={onShowDirections}
           className="w-full py-4 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           style={{ fontSize: 17, minHeight: 56 }}
         >
           <Navigation size={20} />
           Chỉ đường quay lại phòng khám
+        </button>
+        <button
+          type="button"
+          onClick={onBackToDashboard}
+          className="w-full py-4 rounded-xl border border-border bg-card text-foreground flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+          style={{ fontSize: 17, minHeight: 56 }}
+        >
+          <House size={20} />
+          Quay lại màn hình chính
         </button>
       </div>
     </div>

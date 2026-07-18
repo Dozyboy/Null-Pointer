@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { ArrowLeft, Navigation, Accessibility, MapPin, ChevronRight, Layers } from "lucide-react";
+import { ArrowLeft, Navigation, Accessibility, MapPin, ChevronRight, Layers, CheckCircle2 } from "lucide-react";
+import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 
 interface MapScreenProps {
   destination?: string;
   floor?: string;
   travelMinutes?: number;
+  onServiceCompleted: () => void;
   onBack: () => void;
 }
 
@@ -121,12 +123,14 @@ export function MapScreen({
   destination = "Lấy máu 01",
   floor = "Tầng 1, khu A",
   travelMinutes = 0,
+  onServiceCompleted,
   onBack,
 }: MapScreenProps) {
   const destinationFloor = parseFloor(floor);
   const [activeFloor, setActiveFloor] = useState<Floor>(destinationFloor);
   const [showRoute, setShowRoute] = useState(true);
   const [directionsOpen, setDirectionsOpen] = useState(true);
+  const [showCompletionConfirmation, setShowCompletionConfirmation] = useState(false);
   const directionSteps = [
     { step: 1, text: "Đi theo hành lang chính đến khu thang máy hoặc cầu thang gần nhất." },
     { step: 2, text: `Di chuyển đến ${floor} và đi theo biển chỉ dẫn của khoa.` },
@@ -253,11 +257,13 @@ export function MapScreen({
       {/* Actions */}
       <div className="px-4 mt-4 pb-8 flex flex-col gap-3">
         <button
+          type="button"
+          onClick={() => setShowCompletionConfirmation(true)}
           className="w-full py-4 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           style={{ fontSize: 17, minHeight: 56 }}
         >
-          <Navigation size={20} />
-          Tôi đã đến nơi
+          <CheckCircle2 size={20} />
+          Tôi đã khám xong
         </button>
         <button
           className="w-full py-3 rounded-xl border border-border bg-card text-foreground text-center"
@@ -266,6 +272,17 @@ export function MapScreen({
           Không tìm thấy phòng
         </button>
       </div>
+
+      {showCompletionConfirmation && (
+        <ServiceCompletionDialog
+          destination={destination}
+          onCancel={() => setShowCompletionConfirmation(false)}
+          onConfirm={() => {
+            setShowCompletionConfirmation(false);
+            onServiceCompleted();
+          }}
+        />
+      )}
     </div>
   );
 }

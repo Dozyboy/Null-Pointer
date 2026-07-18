@@ -42,7 +42,17 @@ const serviceIcons: Record<ClinicalOrderItem["room_service_type"], string> = {
   urine_test: "🧪",
   xray: "🫁",
   ultrasound: "🔊",
+  soft_tissue_ultrasound: "🔊",
   ct_scan: "◉",
+  cardiac_monitoring: "♥",
+  eeg: "🧠",
+  endoscopy: "◌",
+  sedated_endoscopy: "◌",
+  echocardiography: "♥",
+  vascular_doppler: "↝",
+  spirometry: "🫁",
+  bronchoscopy: "🫁",
+  mri: "◎",
 };
 
 function getServiceNote(item: ClinicalOrderItem) {

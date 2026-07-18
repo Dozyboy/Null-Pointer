@@ -48,6 +48,11 @@ class SqliteClinicalOrderRepository:
                 INSERT INTO simulation_clinical_orders (
                     id, patient_code, encounter_id, created_at, payload_json
                 ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    patient_code = excluded.patient_code,
+                    encounter_id = excluded.encounter_id,
+                    created_at = excluded.created_at,
+                    payload_json = excluded.payload_json
                 """,
                 (
                     order.id,
@@ -69,6 +74,20 @@ class SqliteClinicalOrderRepository:
                 LIMIT 1
                 """,
                 (patient_code,),
+            ).fetchone()
+        if row is None:
+            return None
+        return ClinicalOrderDispatchResponse.model_validate_json(row["payload_json"])
+
+    def get_by_id(self, order_id: str) -> ClinicalOrderDispatchResponse | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload_json
+                FROM simulation_clinical_orders
+                WHERE id = ?
+                """,
+                (order_id,),
             ).fetchone()
         if row is None:
             return None

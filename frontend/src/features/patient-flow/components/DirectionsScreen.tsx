@@ -1,31 +1,35 @@
-import { Navigation, QrCode, MapPin, Accessibility, HeadphonesIcon } from "lucide-react";
+import { useState } from "react";
+import { Navigation, QrCode, MapPin, Accessibility, HeadphonesIcon, CheckCircle2 } from "lucide-react";
 import { AppHeader } from "./AppHeader";
+import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 
 interface DirectionsScreenProps {
+  origin: string;
   destination: string;
   roomCode?: string;
   floor: string;
   distance: string;
-  onArrived: () => void;
+  onServiceCompleted: () => void;
   onNotFound: () => void;
   onBack: () => void;
 }
 
-export function DirectionsScreen({ destination, roomCode, floor, distance, onArrived, onNotFound, onBack }: DirectionsScreenProps) {
+export function DirectionsScreen({ origin, destination, roomCode, floor, distance, onServiceCompleted, onNotFound, onBack }: DirectionsScreenProps) {
+  const [showCompletionConfirmation, setShowCompletionConfirmation] = useState(false);
   const directionSteps = [
-    "Đi theo hành lang chính đến khu thang máy hoặc cầu thang gần nhất.",
+    `Rời ${origin} và đi theo hành lang chính đến khu thang máy hoặc cầu thang gần nhất.`,
     `Di chuyển đến ${floor} và kiểm tra biển chỉ dẫn của khoa.`,
     `Đi theo biển hướng dẫn đến ${destination}.`,
-    `Đối chiếu mã phòng ${roomCode ?? destination} trước khi xác nhận đã đến.`,
+    `Đối chiếu mã phòng ${roomCode ?? destination} trước khi thực hiện dịch vụ.`,
   ];
   return (
     <div className="flex flex-col min-h-full bg-background pb-6">
       <AppHeader
         title={`Đến ${destination}`}
-        subtitle={`${floor} · ${distance}`}
+        subtitle={`Từ ${origin} · ${floor} · ${distance}`}
         onBack={onBack}
-        onForward={onArrived}
-        forwardLabel="Đã đến"
+        onForward={() => setShowCompletionConfirmation(true)}
+        forwardLabel="Tôi đã khám xong"
       />
 
       <div className="flex flex-col gap-3 px-4 pt-4">
@@ -47,7 +51,7 @@ export function DirectionsScreen({ destination, roomCode, floor, distance, onArr
             <path d="M 40 155 L 120 155 L 120 90 L 300 90" stroke="#0B6E6E" strokeWidth="3" fill="none" strokeDasharray="8,4" strokeLinecap="round" />
             {/* Start */}
             <circle cx="40" cy="155" r="10" fill="#0B6E6E" />
-            <text x="55" y="148" fill="#0B6E6E" fontSize="11" fontWeight="600">Bạn đang ở đây</text>
+            <text x="55" y="148" fill="#0B6E6E" fontSize="11" fontWeight="600">{origin}</text>
             {/* Destination */}
             <circle cx="300" cy="90" r="10" fill="#DC2626" />
             <text x="255" y="78" fill="#DC2626" fontSize="11" fontWeight="600">{destination}</text>
@@ -94,7 +98,7 @@ export function DirectionsScreen({ destination, roomCode, floor, distance, onArr
           <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
             <QrCode size={20} className="text-muted-foreground" />
           </div>
-          <p style={{ fontSize: 14 }} className="text-foreground">Quét mã QR tại phòng để xác nhận đã đến đúng nơi</p>
+          <p style={{ fontSize: 14 }} className="text-foreground">Quét mã QR để đối chiếu đúng phòng trước khi làm dịch vụ</p>
         </div>
 
         {/* Support */}
@@ -110,11 +114,13 @@ export function DirectionsScreen({ destination, roomCode, floor, distance, onArr
 
         {/* Actions */}
         <button
-          onClick={onArrived}
+          type="button"
+          onClick={() => setShowCompletionConfirmation(true)}
           className="w-full py-4 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           style={{ fontSize: 17, minHeight: 56 }}
         >
-          Tôi đã đến
+          <CheckCircle2 size={20} />
+          Tôi đã khám xong
         </button>
         <button
           onClick={onNotFound}
@@ -124,6 +130,17 @@ export function DirectionsScreen({ destination, roomCode, floor, distance, onArr
           Không tìm thấy phòng
         </button>
       </div>
+
+      {showCompletionConfirmation && (
+        <ServiceCompletionDialog
+          destination={destination}
+          onCancel={() => setShowCompletionConfirmation(false)}
+          onConfirm={() => {
+            setShowCompletionConfirmation(false);
+            onServiceCompleted();
+          }}
+        />
+      )}
     </div>
   );
 }
