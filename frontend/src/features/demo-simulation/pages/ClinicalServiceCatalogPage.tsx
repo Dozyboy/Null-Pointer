@@ -12,6 +12,7 @@ import {
   Power,
   Radio,
   RefreshCw,
+  Route,
   Save,
   ServerCog,
   Settings2,
@@ -203,13 +204,16 @@ function CatalogSimulationSidebar() {
         <Link to="/demo/simulator?tab=orders">
           <ClipboardList size={19} /> Bắn chỉ định
         </Link>
+        <Link to="/demo/simulator?tab=map">
+          <Route size={19} /> Sơ đồ chỉ đường
+        </Link>
         <Link to="/demo/hospital-data" className="is-active">
           <Settings2 size={19} /> Danh mục chỉ định
         </Link>
       </nav>
       <div className="sim-sidebar__note">
         <Radio size={16} />
-        <div><strong>API giả lập đang dùng</strong><span>Dữ liệu tách biệt với ứng dụng bệnh nhân</span></div>
+        <div><strong>API giả lập đang dùng</strong><span>Phòng, chỉ định và sơ đồ được dùng chung với ứng dụng bệnh nhân</span></div>
       </div>
     </aside>
   )

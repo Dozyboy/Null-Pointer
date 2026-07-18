@@ -1,0 +1,124 @@
+.sim-map-editor {
+  display: grid;
+  gap: 18px;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 26px 34px 42px;
+}
+
+.sim-map-editor__intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 22px 26px;
+  color: #eaf7f0;
+  background: #173c30;
+  border-left: 5px solid #83d5aa;
+  border-radius: 7px;
+}
+
+.sim-map-editor__intro > div:first-child { min-width: 0; }
+.sim-map-editor__intro span { color: #91d3b0; font-size: 11px; font-weight: 800; }
+.sim-map-editor__intro h2 { margin: 6px 0 4px; font-size: 24px; }
+.sim-map-editor__intro p { max-width: 780px; margin: 0; color: #bdd2c8; font-size: 13px; }
+.sim-map-version { display: grid; min-width: 190px; gap: 5px; text-align: right; }
+.sim-map-version small { color: #9cc7b2; font-size: 10px; font-weight: 800; }
+.sim-map-version strong { font-size: 23px; }
+.sim-map-version button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 10px; color: #174231; background: #c6ead6; border: 0; border-radius: 6px; cursor: pointer; }
+
+.sim-map-editor__workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, .65fr); gap: 18px; align-items: start; }
+.sim-map-board { overflow: hidden; min-width: 0; background: #fff; border: 1px solid #dce4df; border-radius: 9px; }
+.sim-editor-step-tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 8px; background: #eef4f0; border-bottom: 1px solid #dce5df; }
+.sim-editor-step-tabs button { min-height: 42px; color: #50645a; background: transparent; border: 0; border-radius: 6px; font-size: 13px; font-weight: 800; cursor: pointer; }
+.sim-editor-step-tabs button.is-active { color: #fff; background: #176d50; box-shadow: 0 2px 7px #164a3830; }
+.sim-editor-step-tabs button:disabled { cursor: not-allowed; opacity: .45; }
+.sim-map-toolbar { display: grid; grid-template-columns: 140px minmax(180px, 1fr) 160px auto; gap: 12px; padding: 16px; border-bottom: 1px solid #e2e8e4; }
+.sim-map-toolbar.is-compact { grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: end; }
+.sim-map-toolbar label,
+.sim-map-inspector label { display: grid; gap: 6px; }
+.sim-map-toolbar label span,
+.sim-map-inspector label span { color: #59675f; font-size: 11px; font-weight: 700; }
+.sim-map-toolbar input,
+.sim-map-toolbar select,
+.sim-map-inspector input,
+.sim-map-inspector select { width: 100%; height: 39px; padding: 0 10px; color: #17221d; background: #fff; border: 1px solid #d2dcd6; border-radius: 6px; outline: none; }
+.sim-map-toolbar input:focus,
+.sim-map-toolbar select:focus,
+.sim-map-inspector input:focus,
+.sim-map-inspector select:focus { border-color: #4d9a76; box-shadow: 0 0 0 3px #e2f1e9; }
+.sim-map-toolbar > button { align-self: end; display: inline-flex; height: 39px; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; color: #176344; background: #e5f3eb; border: 1px solid #c5dfd1; border-radius: 6px; cursor: pointer; }
+.sim-map-toolbar > button.is-active { color: #fff; background: #147a55; border-color: #147a55; }
+.sim-floor-summary { display: flex; min-height: 39px; align-items: center; justify-content: flex-end; gap: 8px; }
+.sim-floor-summary span { padding: 7px 9px; color: #486257; background: #edf5f0; border: 1px solid #d9e7df; border-radius: 999px; font-size: 10px; font-weight: 800; }
+.sim-node-palette { display: grid; grid-template-columns: repeat(6, minmax(82px, 1fr)); gap: 8px; padding: 12px 16px; background: #fbfcfb; border-bottom: 1px solid #e2e8e4; }
+.sim-node-palette button { display: grid; min-height: 68px; place-items: center; gap: 5px; padding: 8px 5px; color: #53675d; background: #fff; border: 1px solid #d7e1db; border-radius: 7px; cursor: grab; }
+.sim-node-palette button:hover { color: #176346; border-color: #91c6aa; background: #f2faf6; }
+.sim-node-palette button.is-active { color: #fff; background: #177152; border-color: #177152; box-shadow: 0 0 0 3px #cde8da; }
+.sim-node-palette button:active { cursor: grabbing; }
+.sim-node-palette button span { font-size: 10px; font-weight: 800; }
+.sim-map-help { display: flex; align-items: center; gap: 8px; padding: 10px 16px; color: #5c6d64; background: #f5f8f6; border-bottom: 1px solid #e4e9e6; font-size: 12px; }
+
+.sim-map-canvas { position: relative; overflow: hidden; width: 100%; background: #eef2ef; touch-action: none; user-select: none; }
+.sim-map-canvas.is-adding { cursor: crosshair; }
+.sim-map-canvas > img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.sim-map-canvas > svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sim-map-canvas > svg line { stroke: #167b62; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 17 11; opacity: .78; pointer-events: stroke; cursor: pointer; vector-effect: non-scaling-stroke; }
+.sim-route-node { position: absolute; z-index: 3; display: grid; width: 28px; height: 28px; place-items: center; color: #fff; background: #15775d; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px #173f3155; font-size: 10px; font-weight: 800; cursor: grab; transform: translate(-50%, -50%); }
+.sim-route-node:active { cursor: grabbing; }
+.sim-route-node.is-door { background: #2a6f9b; }
+.sim-route-node.is-stairs { background: #b06a16; }
+.sim-route-node.is-elevator { background: #674fa0; }
+.sim-route-node.is-entrance { background: #9b4242; }
+.sim-route-node.is-selected { width: 34px; height: 34px; outline: 4px solid #97d9bb99; }
+.sim-route-node.is-linking { background: #d58619; animation: sim-node-pulse 1s ease-in-out infinite; }
+@keyframes sim-node-pulse { 50% { box-shadow: 0 0 0 9px #e1a34844; } }
+
+.sim-map-inspector { display: grid; gap: 12px; }
+.sim-map-inspector > section { display: grid; gap: 11px; padding: 16px; background: #fff; border: 1px solid #dce4df; border-radius: 8px; }
+.sim-map-inspector h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: #193e31; font-size: 14px; }
+.sim-map-inspector section > button { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; padding: 8px 10px; color: #365b4b; background: #f2f7f4; border: 1px solid #d6e3dc; border-radius: 6px; cursor: pointer; }
+.sim-map-inspector section > button.is-primary { color: #fff; background: #147a55; border-color: #147a55; }
+.sim-map-inspector section > button.is-danger { color: #943838; background: #fff1f1; border-color: #eccaca; }
+.sim-map-inspector section > button.is-linking { color: #764c15; background: #fff2d9; border-color: #e7c98d; }
+.sim-map-inspector section > button:disabled { cursor: not-allowed; opacity: .5; }
+.sim-node-coordinates { margin: 0; padding: 8px 10px; color: #53635a; background: #f4f7f5; border-radius: 5px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.sim-connector-identity { display: grid; gap: 3px; padding: 10px; color: #5f4315; background: #fff5df; border: 1px solid #ead4a5; border-radius: 6px; }
+.sim-connector-identity strong { font-size: 13px; }
+.sim-connector-identity span { font-size: 10px; }
+.sim-map-muted { margin: 0; color: #748078; font-size: 11px; line-height: 1.5; }
+.sim-assignment-status { display: grid; gap: 3px; padding: 9px 10px; background: #f4f7f5; border-radius: 5px; }
+.sim-assignment-status span { color: #738078; font-size: 10px; }
+.sim-assignment-status strong { font-size: 11px; line-height: 1.4; }
+.sim-edge-list > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e8ece9; }
+.sim-edge-list > div span { overflow: hidden; color: #536159; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; }
+.sim-edge-list > div button { display: grid; width: 29px; height: 29px; place-items: center; color: #9b4141; background: #fff1f1; border: 0; border-radius: 5px; cursor: pointer; }
+.sim-connector-shafts > div { display: grid; gap: 2px; padding: 9px 10px; background: #f5f8f6; border-left: 3px solid #c27a21; border-radius: 5px; }
+.sim-connector-shafts > div strong { color: #4b4031; font-size: 11px; }
+.sim-connector-shafts > div small { color: #778078; font-size: 9px; line-height: 1.4; }
+.sim-connector-edge-count { margin: 0; color: #486458; font-size: 10px; font-weight: 800; }
+.sim-map-state { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 32px; padding: 36px; color: #526159; background: #fff; border: 1px solid #dce4df; border-radius: 9px; }
+.sim-map-state.is-error { display: grid; justify-items: center; color: #963b3b; }
+.sim-map-state p { margin: 0; }
+.sim-map-state button { display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border: 1px solid #e0c3c3; border-radius: 6px; cursor: pointer; }
+.sim-map-empty { padding: 60px; color: #6f7b74; text-align: center; }
+.is-spinning { animation: sim-spin .8s linear infinite; }
+@keyframes sim-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1120px) {
+  .sim-map-editor__workspace { grid-template-columns: 1fr; }
+  .sim-map-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sim-edge-list { grid-column: 1 / -1; }
+}
+
+@media (max-width: 760px) {
+  .sim-map-editor { padding: 18px 14px 30px; }
+  .sim-map-editor__intro { align-items: flex-start; flex-direction: column; }
+  .sim-map-version { width: 100%; text-align: left; }
+  .sim-map-toolbar { grid-template-columns: 1fr; }
+  .sim-map-toolbar.is-compact { grid-template-columns: 1fr; }
+  .sim-floor-summary { flex-wrap: wrap; justify-content: flex-start; }
+  .sim-node-palette { grid-template-columns: repeat(3, minmax(82px, 1fr)); }
+  .sim-map-inspector { grid-template-columns: 1fr; }
+  .sim-edge-list { grid-column: auto; }
+}

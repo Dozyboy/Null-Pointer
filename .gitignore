@@ -16,6 +16,10 @@ playwright-report/
 test-results/
 blob-report/
 
+# Gói giao diện nguồn dùng để đối chiếu cục bộ, không phải mã sản xuất
+untitled/
+untitled.rar
+
 # Python
 __pycache__/
 *.py[cod]

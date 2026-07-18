@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Layers, MapPin, Navigation } from 'lucide-react'
+import type { IndoorNavigationGraph } from '../../../entities/indoor-navigation/model/indoor-navigation.schemas'
 import { createIndoorNavigationPlan } from '../lib/indoor-map-data'
+import { createIndoorNavigationPlanFromGraph } from '../lib/indoor-map-runtime'
 import type { IndoorFloorNumber } from '../model/indoor-navigation.types'
 import { IndoorMapCanvas } from './IndoorMapCanvas'
 
@@ -11,6 +13,7 @@ interface IndoorNavigationPanelProps {
   destinationName: string
   destinationRoomCode?: string
   destinationFloor: string
+  navigationGraph?: IndoorNavigationGraph
   compact?: boolean
 }
 
@@ -21,17 +24,30 @@ export function IndoorNavigationPanel({
   destinationName,
   destinationRoomCode,
   destinationFloor,
+  navigationGraph,
   compact = false,
 }: IndoorNavigationPanelProps) {
   const plan = useMemo(
-    () =>
-      createIndoorNavigationPlan({
+    () => {
+      const input = {
         originFloorLabel: originFloor,
         originRoomCode,
         destinationFloorLabel: destinationFloor,
         destinationRoomCode,
-      }),
-    [destinationFloor, destinationRoomCode, originFloor, originRoomCode],
+      }
+      return (
+        (navigationGraph
+          ? createIndoorNavigationPlanFromGraph({ graph: navigationGraph, ...input })
+          : undefined) ?? createIndoorNavigationPlan(input)
+      )
+    },
+    [
+      destinationFloor,
+      destinationRoomCode,
+      navigationGraph,
+      originFloor,
+      originRoomCode,
+    ],
   )
   const routeKey = `${originRoomCode ?? originName}-${
     destinationRoomCode ?? destinationName
