@@ -70,7 +70,7 @@ jobs:
           env_vars: |
             AI_SERVICE_URL=${{ steps.deploy-ai.outputs.url }}
             APP_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            DATABASE_URL=${{ secrets.DATABASE_URL || 'sqlite:///./nhip_vien.db' }}
           flags: '--allow-unauthenticated --port=8000' # Ép cả hạ tầng lẫn container chạy chung cổng 8000
       # 5. BUILD & DEPLOY DỊCH VỤ FRONTEND
       # Cần URL của backend vừa deploy để build static assets cho React
