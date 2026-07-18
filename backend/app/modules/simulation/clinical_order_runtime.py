@@ -1,4 +1,6 @@
 from app.core.config import get_settings
+from app.modules.audit.runtime import patient_activity_service
+from app.modules.patients.runtime import patient_registry_service
 from app.modules.routing.runtime import route_proposal_service
 from app.modules.simulation.clinical_order_repository import (
     SqliteClinicalOrderRepository,
@@ -20,4 +22,6 @@ clinical_order_simulation_service = ClinicalOrderSimulationService(
     simulation=simulation_service,
     routing=route_proposal_service,
     repository=clinical_order_repository,
+    patients=patient_registry_service,
+    activities=patient_activity_service,
 )

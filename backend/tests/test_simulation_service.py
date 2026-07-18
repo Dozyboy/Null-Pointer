@@ -8,7 +8,7 @@ def test_reset_creates_rooms_patients_and_mixed_room_statuses() -> None:
     snapshot = service.get_snapshot()
 
     assert snapshot.is_demo is True
-    assert snapshot.summary.total_rooms == 11
+    assert snapshot.summary.total_rooms == 33
     assert len(snapshot.patients) == 24
     assert snapshot.summary.paused_rooms == 1
     assert snapshot.summary.waiting_patients > 0
@@ -37,14 +37,14 @@ def test_pause_and_reopen_room_changes_operational_status() -> None:
     service = HospitalSimulationService()
 
     paused = service.set_room_operation(
-        "XN-101",
+        "XN-113",
         operational=False,
         reason="Giả lập mất kết nối thiết bị.",
     )
-    paused_room = next(room for room in paused.rooms if room.code == "XN-101")
+    paused_room = next(room for room in paused.rooms if room.code == "XN-113")
 
-    reopened = service.set_room_operation("XN-101", operational=True, reason=None)
-    reopened_room = next(room for room in reopened.rooms if room.code == "XN-101")
+    reopened = service.set_room_operation("XN-113", operational=True, reason=None)
+    reopened_room = next(room for room in reopened.rooms if room.code == "XN-113")
 
     assert paused_room.status == RoomStatus.PAUSED
     assert paused_room.status_reason == "Giả lập mất kết nối thiết bị."

@@ -86,7 +86,17 @@ const roomServiceTypeLabels: Record<RoomServiceType, string> = {
   urine_test: 'Phòng nhận mẫu nước tiểu',
   xray: 'Phòng X-quang',
   ultrasound: 'Phòng siêu âm',
+  soft_tissue_ultrasound: 'Phòng siêu âm tuyến giáp / tuyến vú / phần mềm',
   ct_scan: 'Phòng CT',
+  cardiac_monitoring: 'Phòng điện tâm đồ / Holter',
+  eeg: 'Phòng điện não đồ',
+  endoscopy: 'Phòng nội soi không gây mê',
+  sedated_endoscopy: 'Phòng nội soi có gây mê',
+  echocardiography: 'Phòng siêu âm tim',
+  vascular_doppler: 'Phòng siêu âm Doppler',
+  spirometry: 'Phòng đo chức năng hô hấp',
+  bronchoscopy: 'Phòng nội soi phế quản',
+  mri: 'Phòng MRI',
 }
 
 function toFormValues(service: ClinicalService): FormValues {
@@ -482,7 +492,7 @@ export function ClinicalServiceCatalogPage() {
           </div>
 
           {catalogQuery.isPending && <p className="catalog-table-state">Đang đọc dữ liệu đã lưu…</p>}
-          {catalogQuery.isError && <p className="catalog-table-state catalog-message--error" role="alert">Không tải được danh mục. Hãy kiểm tra backend tại cổng 8000.</p>}
+          {catalogQuery.isError && <p className="catalog-table-state catalog-message--error" role="alert">Không tải được danh mục. Hãy kiểm tra máy chủ backend đã cấu hình.</p>}
           {catalogQuery.data && (
             <div className="catalog-table-wrap">
               <table>

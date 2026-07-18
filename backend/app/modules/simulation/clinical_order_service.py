@@ -2,19 +2,27 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from app.modules.audit.schemas import PatientActivityType
+from app.modules.audit.service import PatientActivityLogService
 from app.modules.clinical_orders.entities import (
     ClinicalServiceDefinition,
     RoomServiceType,
     SchedulingPriority,
 )
 from app.modules.clinical_orders.service import ClinicalServiceCatalogService
+from app.modules.patients.service import PatientRegistryService
 from app.modules.routing.catalog import (
     SERVICE_CATALOG,
     LockedPosition,
     ServiceDefinition,
 )
 from app.modules.routing.exceptions import NoFeasibleRouteError
-from app.modules.routing.schemas import CreateRouteProposalRequest, ServiceCode
+from app.modules.routing.schemas import (
+    CreateRouteProposalRequest,
+    RouteProposalResponse,
+    ScheduleStrategy,
+    ServiceCode,
+)
 from app.modules.routing.service import RouteProposalService
 from app.modules.simulation.clinical_order_repository import (
     SqliteClinicalOrderRepository,
@@ -25,8 +33,10 @@ from app.modules.simulation.clinical_order_schemas import (
     DispatchClinicalOrderRequest,
     DispatchedClinicalOrderItemResponse,
     MatchedRoomResponse,
+    RecalculateClinicalOrderRouteRequest,
 )
 from app.modules.simulation.service import HospitalSimulationService
+from app.shared.enums import RoutePriority
 
 
 class ClinicalOrderNotFoundError(LookupError):
@@ -38,7 +48,17 @@ ROOM_TYPE_TO_ROUTE_CODE = {
     RoomServiceType.URINE_TEST: ServiceCode.URINE_TEST,
     RoomServiceType.XRAY: ServiceCode.CHEST_XRAY,
     RoomServiceType.ULTRASOUND: ServiceCode.ABDOMINAL_ULTRASOUND,
+    RoomServiceType.SOFT_TISSUE_ULTRASOUND: ServiceCode.SOFT_TISSUE_ULTRASOUND,
     RoomServiceType.CT_SCAN: ServiceCode.CT_SCAN,
+    RoomServiceType.CARDIAC_MONITORING: ServiceCode.CARDIAC_MONITORING,
+    RoomServiceType.EEG: ServiceCode.EEG,
+    RoomServiceType.ENDOSCOPY: ServiceCode.ENDOSCOPY,
+    RoomServiceType.SEDATED_ENDOSCOPY: ServiceCode.SEDATED_ENDOSCOPY,
+    RoomServiceType.ECHOCARDIOGRAPHY: ServiceCode.ECHOCARDIOGRAPHY,
+    RoomServiceType.VASCULAR_DOPPLER: ServiceCode.VASCULAR_DOPPLER,
+    RoomServiceType.SPIROMETRY: ServiceCode.SPIROMETRY,
+    RoomServiceType.BRONCHOSCOPY: ServiceCode.BRONCHOSCOPY,
+    RoomServiceType.MRI: ServiceCode.MRI,
 }
 
 SCHEDULING_WEIGHT = {
@@ -58,16 +78,21 @@ class ClinicalOrderSimulationService:
         simulation: HospitalSimulationService,
         routing: RouteProposalService,
         repository: SqliteClinicalOrderRepository,
+        patients: PatientRegistryService | None = None,
+        activities: PatientActivityLogService | None = None,
     ) -> None:
         self._catalog = catalog
         self._simulation = simulation
         self._routing = routing
         self._repository = repository
+        self._patients = patients
+        self._activities = activities
 
     def dispatch(
         self,
         request: DispatchClinicalOrderRequest,
     ) -> ClinicalOrderDispatchResponse:
+        request = self._use_stored_patient_identity(request)
         selected_services = [
             self._catalog.get_service(code)
             for code in request.clinical_service_codes
@@ -77,7 +102,107 @@ class ClinicalOrderSimulationService:
             raise NoFeasibleRouteError(
                 "Các dịch vụ đã ngừng sử dụng: " + ", ".join(inactive)
             )
+        proposal, item_responses = self._create_route_proposal(
+            selected_services,
+            encounter_id=request.encounter_id,
+            priority=request.priority,
+            schedule_strategy=request.schedule_strategy,
+            start_room_code=request.doctor_room_code,
+        )
+        order = ClinicalOrderDispatchResponse(
+            id=f"SIM-ORDER-{uuid4().hex[:12].upper()}",
+            status=ClinicalOrderStatus.ROUTED,
+            patient_code=request.patient_code,
+            patient_name=request.patient_name,
+            encounter_id=request.encounter_id,
+            doctor_name=request.doctor_name,
+            doctor_room_code=request.doctor_room_code,
+            created_at=datetime.now(UTC),
+            items=item_responses,
+            route_proposal=proposal,
+        )
+        self._repository.save(order)
+        self._record_dispatched_activity(order)
+        return order
 
+    def recalculate_route(
+        self,
+        patient_code: str,
+        request: RecalculateClinicalOrderRouteRequest,
+    ) -> ClinicalOrderDispatchResponse:
+        order = self.get_latest_for_patient(patient_code)
+        selected_services = [
+            self._catalog.get_service(item.service_code)
+            for item in order.items
+        ]
+        available_route_codes = {
+            ROOM_TYPE_TO_ROUTE_CODE[service.room_service_type]
+            for service in selected_services
+            if service.room_service_type in ROOM_TYPE_TO_ROUTE_CODE
+        }
+        completed_codes = set(request.completed_route_service_codes)
+        unknown_completed_codes = completed_codes - available_route_codes
+        if unknown_completed_codes:
+            raise NoFeasibleRouteError(
+                "Danh sách dịch vụ đã hoàn thành không thuộc chỉ định hiện tại: "
+                + ", ".join(sorted(code.value for code in unknown_completed_codes))
+            )
+
+        remaining_services = [
+            service
+            for service in selected_services
+            if ROOM_TYPE_TO_ROUTE_CODE.get(service.room_service_type)
+            not in completed_codes
+        ]
+        proposal, _ = self._create_route_proposal(
+            remaining_services,
+            encounter_id=order.encounter_id,
+            priority=request.priority,
+            schedule_strategy=request.schedule_strategy,
+            start_room_code=request.start_room_code or order.doctor_room_code,
+        )
+        return order.model_copy(update={"route_proposal": proposal})
+
+    def commit_route_proposal(
+        self,
+        clinical_order_id: str,
+        proposal: RouteProposalResponse,
+    ) -> None:
+        order = self._repository.get_by_id(clinical_order_id)
+        if order is None:
+            raise ClinicalOrderNotFoundError(clinical_order_id)
+        if order.encounter_id != proposal.encounter_id:
+            raise NoFeasibleRouteError(
+                "Lộ trình mới không thuộc lượt khám của chỉ định hiện tại."
+            )
+        if order.route_proposal.id == proposal.id:
+            return
+
+        committed_proposal = proposal.model_copy(
+            update={
+                "warnings": [
+                    *proposal.warnings,
+                    (
+                        "Hệ thống điều phối đã cập nhật lịch trình theo yêu cầu của người bệnh; "
+                        f"phiên dữ liệu {proposal.simulation_tick}, "
+                        f"thuật toán {proposal.algorithm_version}."
+                    ),
+                ]
+            }
+        )
+        self._repository.save(
+            order.model_copy(update={"route_proposal": committed_proposal})
+        )
+
+    def _create_route_proposal(
+        self,
+        selected_services: list[ClinicalServiceDefinition],
+        *,
+        encounter_id: str,
+        priority: RoutePriority,
+        schedule_strategy: ScheduleStrategy,
+        start_room_code: str,
+    ) -> tuple[RouteProposalResponse, list[DispatchedClinicalOrderItemResponse]]:
         grouped = self._group_services(selected_services)
         snapshot = self._simulation.get_snapshot()
         dynamic_catalog = dict(SERVICE_CATALOG)
@@ -128,31 +253,54 @@ class ClinicalOrderSimulationService:
 
         required_service_codes.append(ServiceCode.DOCTOR_RETURN)
         route_request = CreateRouteProposalRequest(
-            priority=request.priority,
-            schedule_strategy=request.schedule_strategy,
+            priority=priority,
+            schedule_strategy=schedule_strategy,
             required_service_codes=required_service_codes,
-            start_room_code=request.doctor_room_code,
+            start_room_code=start_room_code,
         )
         proposal = self._routing.create_proposal(
-            request.encounter_id,
+            encounter_id,
             route_request,
             service_catalog=dynamic_catalog,
             allowed_room_locations=allowed_room_locations,
         )
-        order = ClinicalOrderDispatchResponse(
-            id=f"SIM-ORDER-{uuid4().hex[:12].upper()}",
-            status=ClinicalOrderStatus.ROUTED,
-            patient_code=request.patient_code,
-            patient_name=request.patient_name,
-            encounter_id=request.encounter_id,
-            doctor_name=request.doctor_name,
-            doctor_room_code=request.doctor_room_code,
-            created_at=datetime.now(UTC),
-            items=item_responses,
-            route_proposal=proposal,
+        return proposal, item_responses
+
+    def _record_dispatched_activity(
+        self,
+        order: ClinicalOrderDispatchResponse,
+    ) -> None:
+        if self._activities is None:
+            return
+        service_names = ", ".join(item.service_name for item in order.items)
+        self._activities.record(
+            idempotency_key=f"clinical-order:{order.id}:dispatched",
+            patient_code=order.patient_code,
+            encounter_id=order.encounter_id,
+            activity_type=PatientActivityType.CLINICAL_ORDER_DISPATCHED,
+            title=f"Đã nhận {len(order.items)} chỉ định mới",
+            description=(f"{order.doctor_name} đã gửi: {service_names}")[:500],
+            room_code=order.doctor_room_code,
+            clinical_order_id=order.id,
+            occurred_at=order.created_at,
         )
-        self._repository.save(order)
-        return order
+
+    def _use_stored_patient_identity(
+        self,
+        request: DispatchClinicalOrderRequest,
+    ) -> DispatchClinicalOrderRequest:
+        if self._patients is None:
+            return request
+        patient = self._patients.get_patient(request.patient_code)
+        return request.model_copy(
+            update={
+                "patient_code": patient.id,
+                "patient_name": patient.full_name,
+                "encounter_id": patient.current_encounter_id,
+                "doctor_name": patient.attending_doctor_name,
+                "doctor_room_code": patient.doctor_room_code,
+            }
+        )
 
     def get_latest_for_patient(self, patient_code: str) -> ClinicalOrderDispatchResponse:
         order = self._repository.get_latest(patient_code.strip())

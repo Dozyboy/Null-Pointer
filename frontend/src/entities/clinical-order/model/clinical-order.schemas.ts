@@ -5,7 +5,17 @@ const roomServiceTypeSchema = z.enum([
   'urine_test',
   'xray',
   'ultrasound',
+  'soft_tissue_ultrasound',
   'ct_scan',
+  'cardiac_monitoring',
+  'eeg',
+  'endoscopy',
+  'sedated_endoscopy',
+  'echocardiography',
+  'vascular_doppler',
+  'spirometry',
+  'bronchoscopy',
+  'mri',
 ])
 
 const fastingPolicySchema = z.enum([
@@ -102,4 +112,11 @@ export interface DispatchClinicalOrderPayload {
   clinical_service_codes: string[]
   priority: 'system' | 'fastest' | 'less_walk' | 'less_crowd' | 'accessible'
   schedule_strategy: 'balanced' | 'finish_early' | 'leave_fast'
+}
+
+export interface RecalculateClinicalOrderRoutePayload {
+  priority: 'system' | 'fastest' | 'less_walk' | 'less_crowd' | 'accessible'
+  schedule_strategy: 'balanced' | 'finish_early' | 'leave_fast'
+  completed_route_service_codes: string[]
+  start_room_code?: string
 }

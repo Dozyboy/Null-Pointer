@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Navigation, CheckCircle2, Loader2, Circle, RefreshCw } from "lucide-react";
 import { AppHeader } from "./AppHeader";
+import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 import type { Route } from "../model/patient-flow.types";
 
 export type JourneyStep = 0 | 1 | 2 | 3;
@@ -8,7 +10,6 @@ interface TodayJourneyScreenProps {
   route: Route;
   currentStep: JourneyStep;
   onShowDirections: () => void;
-  onNeedSupport: () => void;
   onStepDone: () => void;
 }
 
@@ -16,9 +17,9 @@ export function TodayJourneyScreen({
   route,
   currentStep,
   onShowDirections,
-  onNeedSupport,
   onStepDone,
 }: TodayJourneyScreenProps) {
+  const [showCompletionConfirmation, setShowCompletionConfirmation] = useState(false);
   const totalSteps = route.stepDetails.length;
   const currentStepData = route.stepDetails[currentStep] ?? route.stepDetails.at(-1);
   const isDoctorReturn = currentStepData?.serviceCode === "doctor_return";
@@ -27,11 +28,11 @@ export function TodayJourneyScreen({
   const completedSteps = currentStep;
 
   return (
-    <div className="flex flex-col min-h-full bg-background pb-24">
+    <div className="flex flex-col min-h-full bg-background pb-8">
       <AppHeader
         variant="primary"
         title="Hành trình hôm nay"
-        subtitle={`${completedSteps}/${totalSteps} hoàn tất · Cập nhật 8 giây trước`}
+        subtitle={`${completedSteps}/${totalSteps} hoàn tất · Đã đồng bộ với máy chủ`}
         progress={{ current: completedSteps, total: totalSteps }}
       />
 
@@ -86,7 +87,7 @@ export function TodayJourneyScreen({
             <p style={{ fontSize: 13 }} className="text-muted-foreground">Toàn bộ hành trình</p>
             <div className="flex items-center gap-1.5">
               <RefreshCw size={12} className="text-muted-foreground" />
-              <span style={{ fontSize: 11 }} className="text-muted-foreground">8 giây trước</span>
+              <span style={{ fontSize: 11 }} className="text-muted-foreground">Đồng bộ từ máy chủ</span>
             </div>
           </div>
           <div className="relative px-4 py-3">
@@ -133,24 +134,29 @@ export function TodayJourneyScreen({
           </div>
         </div>
 
-        {/* Demo advance */}
+        {/* Hoàn thành dịch vụ hiện tại */}
         <button
-          onClick={onStepDone}
-          className="w-full py-2.5 rounded-xl border border-dashed border-muted-foreground/40 text-muted-foreground text-center"
-          style={{ fontSize: 13 }}
+          type="button"
+          onClick={() => setShowCompletionConfirmation(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-primary-foreground active:scale-[0.98]"
+          style={{ fontSize: 17, minHeight: 56 }}
         >
-          Mô phỏng: Hoàn tất {isDoctorReturn ? "hành trình" : `bước ${currentStep + 1}`} →
+          <CheckCircle2 size={20} />
+          Tôi đã khám xong
         </button>
 
-        {/* Support */}
-        <button
-          onClick={onNeedSupport}
-          className="w-full py-3.5 rounded-xl border border-border bg-card text-foreground flex items-center justify-center gap-2"
-          style={{ fontSize: 15, minHeight: 52 }}
-        >
-          Tôi cần hỗ trợ
-        </button>
       </div>
+
+      {showCompletionConfirmation && (
+        <ServiceCompletionDialog
+          destination={roomName}
+          onCancel={() => setShowCompletionConfirmation(false)}
+          onConfirm={() => {
+            setShowCompletionConfirmation(false);
+            onStepDone();
+          }}
+        />
+      )}
     </div>
   );
 }

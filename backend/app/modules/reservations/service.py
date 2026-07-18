@@ -1,7 +1,10 @@
 from datetime import UTC, datetime, timedelta
 from threading import RLock
+from typing import Protocol
 from uuid import uuid4
 
+from app.modules.audit.schemas import PatientActivityType
+from app.modules.audit.service import PatientActivityLogService
 from app.modules.reservations.exceptions import (
     ReservationExpiredError,
     ReservationNotFoundError,
@@ -19,7 +22,16 @@ from app.modules.reservations.schemas import (
     RouteReservationResponse,
 )
 from app.modules.routing.runtime import route_proposal_service
+from app.modules.routing.schemas import RouteProposalResponse
 from app.modules.routing.service import RouteProposalService
+
+
+class ClinicalOrderRouteUpdater(Protocol):
+    def commit_route_proposal(
+        self,
+        clinical_order_id: str,
+        proposal: RouteProposalResponse,
+    ) -> None: ...
 
 
 class RouteReservationService:
@@ -30,10 +42,14 @@ class RouteReservationService:
         proposal_service: RouteProposalService | None = None,
         hold_seconds: int = 120,
         repository: RouteReservationRepository | None = None,
+        activities: PatientActivityLogService | None = None,
+        route_updater: ClinicalOrderRouteUpdater | None = None,
     ) -> None:
         self._proposal_service = proposal_service or route_proposal_service
         self._hold_seconds = hold_seconds
         self._repository = repository or InMemoryRouteReservationRepository()
+        self._activities = activities
+        self._route_updater = route_updater
         self._lock = RLock()
 
     def create_hold(
@@ -84,11 +100,33 @@ class RouteReservationService:
                 raise ReservationExpiredError("Chỗ giữ đã hết hạn")
             if record.status is not ReservationStatus.HELD:
                 raise ReservationStateError("Chỗ giữ không còn ở trạng thái có thể xác nhận")
+            proposal, _ = self._proposal_service.get_valid_option(
+                record.route_proposal_id,
+                record.route_option_id,
+                record.encounter_id,
+            )
             record.status = ReservationStatus.CONFIRMED
             record.confirmed_at = now
             record.journey_id = record.journey_id or f"journey-{uuid4()}"
             record.journey_status = JourneyStatus.ACTIVE
             self._repository.save(record)
+            if record.clinical_order_id and self._route_updater:
+                self._route_updater.commit_route_proposal(
+                    record.clinical_order_id,
+                    proposal,
+                )
+            if record.patient_code and self._activities:
+                self._activities.record(
+                    idempotency_key=f"reservation:{record.id}:confirmed",
+                    patient_code=record.patient_code,
+                    encounter_id=record.encounter_id,
+                    activity_type=PatientActivityType.ROUTE_CONFIRMED,
+                    title="Đã xác nhận lộ trình",
+                    description="Hệ thống đã giữ chỗ và bắt đầu theo dõi tiến độ hành trình.",
+                    clinical_order_id=record.clinical_order_id,
+                    reservation_id=record.id,
+                    occurred_at=now,
+                )
             return self._to_response(record)
 
     def extend(self, reservation_id: str) -> RouteReservationResponse:
@@ -128,9 +166,40 @@ class RouteReservationService:
             record = self._get_record(reservation_id)
             if record.status is not ReservationStatus.CONFIRMED:
                 raise ReservationStateError("Chỉ cập nhật được hành trình đã xác nhận")
+            previous_step = record.current_step
+            previous_status = record.journey_status
+            if previous_step == current_step and previous_status is journey_status:
+                return self._to_response(record)
             record.current_step = current_step
             record.journey_status = journey_status
             self._repository.save(record)
+            if record.patient_code and self._activities:
+                is_completed = journey_status is JourneyStatus.COMPLETED
+                self._activities.record(
+                    idempotency_key=(
+                        f"reservation:{record.id}:progress:{current_step}:"
+                        f"{journey_status.value}"
+                    ),
+                    patient_code=record.patient_code,
+                    encounter_id=record.encounter_id,
+                    activity_type=(
+                        PatientActivityType.JOURNEY_COMPLETED
+                        if is_completed
+                        else PatientActivityType.SERVICE_COMPLETED
+                    ),
+                    title=(
+                        "Đã hoàn thành hành trình khám"
+                        if is_completed
+                        else f"Đã hoàn thành dịch vụ bước {previous_step + 1}"
+                    ),
+                    description=(
+                        f"Hệ thống đã ghi nhận hoàn thành tại bước {current_step + 1}."
+                        if is_completed
+                        else f"Hành trình đã chuyển sang bước {current_step + 1}."
+                    ),
+                    clinical_order_id=record.clinical_order_id,
+                    reservation_id=record.id,
+                )
             return self._to_response(record)
 
     def reset(self) -> None:

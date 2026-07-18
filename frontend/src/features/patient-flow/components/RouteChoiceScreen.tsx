@@ -2,24 +2,28 @@ import { ChevronRight, Clock, MapPin, Layers, RefreshCw, Info } from "lucide-rea
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
-import { createRouteProposal } from "../api/patient-flow-api";
+import { mapClinicalOrderRoutes } from "../api/patient-flow-api";
+import { recalculateLatestPatientRoute } from "../../../entities/clinical-order/api/clinical-order-api";
 import type { Priority, Route, RouteId, ScheduleStrategy } from "../model/patient-flow.types";
 
 export type { Route } from "../model/patient-flow.types";
 
-const priorityLabels: Record<Priority, string> = {
-  system: "Cân bằng",
-  fastest: "Hoàn tất sớm",
-  lessWalk: "Ít đi bộ",
-  lessCrowd: "Khu chờ ít đông",
-  accessible: "Hỗ trợ di chuyển",
+const scheduleStrategyLabels: Record<ScheduleStrategy, string> = {
+  balanced: "Cân bằng",
+  finish_early: "Ưu tiên thời gian vào khám",
+  leave_fast: "Ưu tiên kết quả đến tay bác sĩ",
 };
 
 interface RouteChoiceScreenProps {
   priority: Priority;
   scheduleStrategy: ScheduleStrategy;
-  dispatchedRoutes?: Route[];
-  doctorName?: string;
+  dispatchedRoutes: Route[];
+  recalculation?: {
+    patientCode: string;
+    completedServiceCodes: string[];
+    startRoomCode?: string;
+  };
+  doctorName: string;
   onBack: () => void;
   onSelect: (route: Route) => void;
   onViewDetail: (route: Route) => void;
@@ -29,32 +33,61 @@ export function RouteChoiceScreen({
   priority,
   scheduleStrategy,
   dispatchedRoutes,
-  doctorName = "BS. Trần Văn Hùng",
+  recalculation,
+  doctorName,
   onBack,
   onSelect,
   onViewDetail,
 }: RouteChoiceScreenProps) {
   const [showReasonFor, setShowReasonFor] = useState<RouteId | null>(null);
+  const shouldRecalculate = recalculation !== undefined;
   const {
     data: calculatedRoutes = [],
     isPending,
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["route-proposal", priority, scheduleStrategy],
-    queryFn: () => createRouteProposal(priority, scheduleStrategy),
-    enabled: dispatchedRoutes === undefined,
+    queryKey: [
+      "route-proposal",
+      priority,
+      scheduleStrategy,
+      recalculation?.patientCode,
+      recalculation?.completedServiceCodes,
+      recalculation?.startRoomCode,
+    ],
+    queryFn: async () => {
+      if (!recalculation) {
+        return [];
+      }
+      const updatedOrder = await recalculateLatestPatientRoute(
+        recalculation.patientCode,
+        {
+          priority: priority === "lessWalk"
+            ? "less_walk"
+            : priority === "lessCrowd"
+              ? "less_crowd"
+              : priority,
+          schedule_strategy: scheduleStrategy,
+          completed_route_service_codes: recalculation.completedServiceCodes,
+          start_room_code: recalculation.startRoomCode,
+        },
+      );
+      return mapClinicalOrderRoutes(updatedOrder);
+    },
+    enabled: shouldRecalculate,
     staleTime: 0,
   });
-  const routes = dispatchedRoutes ?? calculatedRoutes;
-  const isRouteLoading = dispatchedRoutes === undefined && isPending;
-  const hasRouteError = dispatchedRoutes === undefined && isError;
+  const routes = shouldRecalculate
+    ? calculatedRoutes
+    : dispatchedRoutes;
+  const isRouteLoading = shouldRecalculate && isPending;
+  const hasRouteError = shouldRecalculate && isError;
 
   return (
     <div className="flex flex-col min-h-full bg-background">
       <AppHeader
         title="Chọn lộ trình"
-        subtitle={`Ưu tiên: ${priorityLabels[priority]}`}
+        subtitle={`Chế độ: ${scheduleStrategyLabels[scheduleStrategy]}`}
         progress={{ current: 3, total: 4 }}
         onBack={onBack}
       />
@@ -173,7 +206,7 @@ export function RouteChoiceScreen({
                   className="w-full py-2.5 text-primary text-center rounded-xl border border-border"
                   style={{ fontSize: 14, minHeight: 44 }}
                 >
-                  Xem chi tiết và đổi phòng
+                  Xem chi tiết lộ trình
                 </button>
               </div>
             </div>

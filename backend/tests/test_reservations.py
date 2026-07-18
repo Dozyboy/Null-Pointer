@@ -3,8 +3,20 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.modules.reservations.schemas import CreateRouteReservationRequest
 from app.modules.reservations.service import RouteReservationService
-from app.modules.routing.schemas import CreateRouteProposalRequest
+from app.modules.routing.schemas import CreateRouteProposalRequest, RouteProposalResponse
 from app.modules.routing.service import RouteProposalService
+
+
+class RecordingRouteUpdater:
+    def __init__(self) -> None:
+        self.committed: list[tuple[str, RouteProposalResponse]] = []
+
+    def commit_route_proposal(
+        self,
+        clinical_order_id: str,
+        proposal: RouteProposalResponse,
+    ) -> None:
+        self.committed.append((clinical_order_id, proposal))
 
 
 def create_demo_hold(
@@ -56,6 +68,37 @@ def test_hold_can_only_be_extended_once() -> None:
 
     assert extended.extension_count == 1
     assert extended.expires_at > hold.expires_at
+
+
+def test_confirm_commits_new_route_after_reservation_is_confirmed() -> None:
+    proposal_service = RouteProposalService()
+    updater = RecordingRouteUpdater()
+    service = RouteReservationService(
+        proposal_service=proposal_service,
+        route_updater=updater,
+    )
+    proposal = proposal_service.create_proposal(
+        "TM-REPLAN-001",
+        CreateRouteProposalRequest(),
+    )
+    hold = service.create_hold(
+        CreateRouteReservationRequest(
+            encounter_id=proposal.encounter_id,
+            route_proposal_id=proposal.id,
+            route_option_id=proposal.options[0].id,
+            idempotency_key="replan-confirm-key",
+            patient_code="BN-REPLAN-001",
+            clinical_order_id="SIM-ORDER-REPLAN-001",
+        )
+    )
+
+    assert updater.committed == []
+
+    confirmed = service.confirm(hold.id)
+
+    assert confirmed.status == "confirmed"
+    assert updater.committed[0][0] == "SIM-ORDER-REPLAN-001"
+    assert updater.committed[0][1].id == proposal.id
 
 
 def test_reservation_api_rejects_option_not_in_proposal() -> None:

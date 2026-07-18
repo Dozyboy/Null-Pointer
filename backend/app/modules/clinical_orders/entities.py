@@ -28,7 +28,17 @@ class RoomServiceType(StrEnum):
     URINE_TEST = "urine_test"
     XRAY = "xray"
     ULTRASOUND = "ultrasound"
+    SOFT_TISSUE_ULTRASOUND = "soft_tissue_ultrasound"
     CT_SCAN = "ct_scan"
+    CARDIAC_MONITORING = "cardiac_monitoring"
+    EEG = "eeg"
+    ENDOSCOPY = "endoscopy"
+    SEDATED_ENDOSCOPY = "sedated_endoscopy"
+    ECHOCARDIOGRAPHY = "echocardiography"
+    VASCULAR_DOPPLER = "vascular_doppler"
+    SPIROMETRY = "spirometry"
+    BRONCHOSCOPY = "bronchoscopy"
+    MRI = "mri"
 
 
 @dataclass(frozen=True, slots=True)

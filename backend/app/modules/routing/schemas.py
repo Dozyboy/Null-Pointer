@@ -23,7 +23,17 @@ class ServiceCode(StrEnum):
     URINE_TEST = "urine_test"
     CHEST_XRAY = "chest_xray"
     ABDOMINAL_ULTRASOUND = "abdominal_ultrasound"
+    SOFT_TISSUE_ULTRASOUND = "soft_tissue_ultrasound"
     CT_SCAN = "ct_scan"
+    CARDIAC_MONITORING = "cardiac_monitoring"
+    EEG = "eeg"
+    ENDOSCOPY = "endoscopy"
+    SEDATED_ENDOSCOPY = "sedated_endoscopy"
+    ECHOCARDIOGRAPHY = "echocardiography"
+    VASCULAR_DOPPLER = "vascular_doppler"
+    SPIROMETRY = "spirometry"
+    BRONCHOSCOPY = "bronchoscopy"
+    MRI = "mri"
     DOCTOR_RETURN = "doctor_return"
 
 
