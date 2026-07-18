@@ -1,4 +1,4 @@
-import { Info, Lock, ChevronRight } from "lucide-react";
+import { Lock, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import type { Route } from "../model/patient-flow.types";
@@ -39,11 +39,6 @@ interface RouteDetailScreenProps {
 
 export function RouteDetailScreen({ route, onBack, onConfirm }: RouteDetailScreenProps) {
   const [steps] = useState<Step[]>(() => buildSteps(route));
-  const [openReasonFor, setOpenReasonFor] = useState<number | null>(null);
-
-  const reasons = route.stepDetails.map(
-    (step) => step.lockReason ?? route.reason,
-  );
 
   return (
     <div className="flex flex-col min-h-full bg-background">
@@ -122,23 +117,6 @@ export function RouteDetailScreen({ route, onBack, onConfirm }: RouteDetailScree
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setOpenReasonFor(openReasonFor === idx ? null : idx)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-primary"
-                    style={{ fontSize: 13, minHeight: 40 }}
-                  >
-                    <Info size={13} />
-                    Vì sao bước này?
-                  </button>
-
-                </div>
-
-                {openReasonFor === idx && (
-                  <div className="mt-3 bg-secondary rounded-lg p-3">
-                    <p style={{ fontSize: 13 }} className="text-foreground leading-relaxed">{reasons[idx]}</p>
-                  </div>
-                )}
               </div>
             </div>
           );

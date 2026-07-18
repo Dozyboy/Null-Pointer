@@ -1,4 +1,4 @@
-import { Info, RefreshCw, Lock, CheckCircle2, ChevronRight, X, AlertCircle } from "lucide-react";
+import { RefreshCw, Lock, CheckCircle2, ChevronRight, X, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import type { Route } from "./RouteChoiceScreen";
@@ -80,18 +80,10 @@ interface RouteDetailScreenProps {
 
 export function RouteDetailScreen({ route, onBack, onConfirm }: RouteDetailScreenProps) {
   const [steps] = useState<Step[]>(() => buildSteps(route));
-  const [openReasonFor, setOpenReasonFor] = useState<number | null>(null);
   const [changingStep, setChangingStep] = useState<number | null>(null);
   const [selectedAlternative, setSelectedAlternative] = useState<{ stepIdx: number; roomIdx: number } | null>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [appliedChanges, setAppliedChanges] = useState<Record<number, number>>({});
-
-  const reasons = [
-    "Lấy máu trước để mẫu được xử lý trong lúc bạn chụp X-quang. Siêu âm được xếp tiếp theo vì bạn đang cần nhịn ăn.",
-    "X-quang không cần chuẩn bị đặc biệt và kết quả sẵn sàng nhanh. Xếp sau lấy máu để tận dụng thời gian chờ.",
-    "Siêu âm cần nhịn ăn và bạn đã đáp ứng điều kiện này. Xếp cuối để hoàn thành trong cùng điều kiện chuẩn bị.",
-    "Hệ thống sẽ thông báo khi đủ kết quả bắt buộc để quay lại bác sĩ.",
-  ];
 
   function handleApplyChange() {
     if (selectedAlternative) {
@@ -189,22 +181,7 @@ export function RouteDetailScreen({ route, onBack, onConfirm }: RouteDetailScree
                   </div>
                 )}
 
-                {step.lockReason && openReasonFor === idx && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-                    <p style={{ fontSize: 13 }} className="text-amber-800">{step.lockReason}</p>
-                  </div>
-                )}
-
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setOpenReasonFor(openReasonFor === idx ? null : idx)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-primary"
-                    style={{ fontSize: 13, minHeight: 40 }}
-                  >
-                    <Info size={13} />
-                    Vì sao bước này?
-                  </button>
-
                   {step.canChange && !step.locked && (
                     <button
                       onClick={() => {
@@ -221,11 +198,6 @@ export function RouteDetailScreen({ route, onBack, onConfirm }: RouteDetailScree
                   )}
                 </div>
 
-                {openReasonFor === idx && (
-                  <div className="mt-3 bg-secondary rounded-lg p-3">
-                    <p style={{ fontSize: 13 }} className="text-foreground leading-relaxed">{reasons[idx]}</p>
-                  </div>
-                )}
               </div>
             </div>
           );
