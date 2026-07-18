@@ -52,7 +52,7 @@ jobs:
           service: nhip-vien-ai
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/ai-service:${{ github.sha }}
           region: ${{ env.REGION }}
-          flags: '--allow-unauthenticated --port=8010'
+          flags: '--allow-unauthenticated' # Xóa --port=8010, để Cloud Run tự sinh cổng mặc định
 
       # 4. BUILD & DEPLOY DỊCH VỤ BACKEND
       - name: Build and Push Backend Image
@@ -71,7 +71,7 @@ jobs:
             AI_SERVICE_URL=${{ steps.deploy-ai.outputs.url }}
             APP_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-          flags: '--allow-unauthenticated --port=8000'
+          flags: '--allow-unauthenticated' # Xóa --port=8000, để Cloud Run tự quản lý cổng
 
       # 5. BUILD & DEPLOY DỊCH VỤ FRONTEND
       # Cần URL của backend vừa deploy để build static assets cho React
