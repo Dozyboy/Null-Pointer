@@ -78,6 +78,55 @@ describe('thuật toán chỉ đường trong bệnh viện', () => {
     expect(plan?.destinationNode.id).toContain('xray')
   })
 
+  it('đi từ P405 đến cầu thang theo các giao điểm hành lang Tầng 4', () => {
+    const plan = createIndoorNavigationPlan({
+      originFloorLabel: 'Tầng 4',
+      originRoomCode: 'P405',
+      destinationFloorLabel: 'Tầng 1',
+      destinationRoomCode: 'XN-113',
+    })
+
+    const floorFourRoute = plan?.route.filter((node) => node.floorNumber === 4)
+
+    expect(floorFourRoute?.map((node) => node.id)).toEqual([
+      'p405-floor-4',
+      'central-junction-floor-4',
+      'north-center-floor-4',
+      'p404-floor-4',
+      'p403-floor-4',
+      'p402-floor-4',
+      'p401-floor-4',
+      'stairs-a-floor-4',
+    ])
+    expect(
+      floorFourRoute?.every((node, index, route) => {
+        const nextNode = route[index + 1]
+        return (
+          !nextNode ||
+          node.xPercent === nextNode.xPercent ||
+          node.yPercent === nextNode.yPercent
+        )
+      }),
+    ).toBe(true)
+  })
+
+  it('gán node cửa phòng riêng cho toàn bộ P401 đến P408', () => {
+    const roomNumbers = Array.from({ length: 8 }, (_, index) => 401 + index)
+    const originNodeIds = roomNumbers.map((roomNumber) =>
+      createIndoorNavigationPlan({
+        originFloorLabel: 'Tầng 4',
+        originRoomCode: `P${roomNumber}`,
+        destinationFloorLabel: 'Tầng 4',
+        destinationRoomCode: 'P401',
+      })?.originNode.id,
+    )
+
+    expect(originNodeIds).toEqual(
+      roomNumbers.map((roomNumber) => `p${roomNumber}-floor-4`),
+    )
+    expect(new Set(originNodeIds).size).toBe(8)
+  })
+
   it('không tạo tuyến giả khi tầng chưa có bản đồ', () => {
     expect(
       createIndoorNavigationPlan({
