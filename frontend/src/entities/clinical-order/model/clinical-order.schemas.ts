@@ -67,7 +67,14 @@ const routeStepSchema = z.object({
 
 const routeOptionSchema = z.object({
   id: z.string(),
-  label: z.enum(['recommended', 'less_walk', 'less_crowd']),
+  label: z.enum([
+    'balanced',
+    'early_service',
+    'doctor_ready',
+    'recommended',
+    'less_walk',
+    'less_crowd',
+  ]),
   duration_minutes_min: z.number().int().nonnegative(),
   duration_minutes_max: z.number().int().nonnegative(),
   distance_meters: z.number().int().nonnegative(),

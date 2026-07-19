@@ -13,6 +13,8 @@ describe('DirectionsScreen', () => {
     render(
       <DirectionsScreen
         origin="Phòng xét nghiệm máu 113"
+        originRoomCode="XN-113"
+        originFloor="Tầng 1"
         destination="Phòng X-quang 201"
         roomCode="XQ-201"
         floor="Tầng 2"
@@ -26,6 +28,18 @@ describe('DirectionsScreen', () => {
     expect(screen.queryByRole('button', { name: 'Tôi đã đến' })).not.toBeInTheDocument()
     expect(screen.getAllByText('Phòng xét nghiệm máu 113').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Phòng X-quang 201').length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('heading', { name: 'Lộ trình di chuyển' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Bắt đầu tại Phòng xét nghiệm máu 113'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Lên Tầng 2 bằng Cầu thang A'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Đến Phòng X-quang 201')).toBeInTheDocument()
+    expect(screen.getByAltText('Sơ đồ Tầng 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Đường đi được đề xuất')).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Tôi đã khám xong' })[1])
 

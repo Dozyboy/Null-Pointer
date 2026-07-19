@@ -18,19 +18,19 @@ const options: {
   {
     id: "balanced",
     label: "Cân bằng",
-    description: "Cân bằng thời gian chờ, di chuyển và thời điểm trả kết quả",
+    description: "Cân bằng thời gian chờ, thời điểm có kết quả và việc di chuyển",
     icon: <Sliders size={22} />,
   },
   {
     id: "finish_early",
-    label: "Ưu tiên thời gian vào khám",
-    description: "Ưu tiên được tiếp nhận và hoàn thành các dịch vụ sớm; có thể chờ bác sĩ lâu hơn",
+    label: "Ưu tiên vào khám – làm dịch vụ sớm",
+    description: "Ưu tiên được tiếp nhận và hoàn thành các dịch vụ sớm; có thể chờ gặp lại bác sĩ lâu hơn",
     icon: <Zap size={22} />,
   },
   {
     id: "leave_fast",
-    label: "Ưu tiên kết quả đến tay bác sĩ",
-    description: "Sắp xếp để các kết quả bắt buộc đến tay bác sĩ trong thời gian sớm nhất",
+    label: "Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ",
+    description: "Sắp xếp để hoàn thành dịch vụ, có đủ kết quả và gặp lại bác sĩ sớm nhất",
     icon: <Check size={22} />,
   },
 ];

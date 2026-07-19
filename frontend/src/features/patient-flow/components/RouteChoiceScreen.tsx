@@ -1,17 +1,16 @@
-import { ChevronRight, Clock, MapPin, Layers, RefreshCw, Info } from "lucide-react";
+import { ChevronRight, Clock, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import { mapClinicalOrderRoutes } from "../api/patient-flow-api";
 import { recalculateLatestPatientRoute } from "../../../entities/clinical-order/api/clinical-order-api";
-import type { Priority, Route, RouteId, ScheduleStrategy } from "../model/patient-flow.types";
+import type { Priority, Route, ScheduleStrategy } from "../model/patient-flow.types";
 
 export type { Route } from "../model/patient-flow.types";
 
 const scheduleStrategyLabels: Record<ScheduleStrategy, string> = {
   balanced: "Cân bằng",
-  finish_early: "Ưu tiên thời gian vào khám",
-  leave_fast: "Ưu tiên kết quả đến tay bác sĩ",
+  finish_early: "Ưu tiên vào khám – làm dịch vụ sớm",
+  leave_fast: "Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ",
 };
 
 interface RouteChoiceScreenProps {
@@ -39,7 +38,6 @@ export function RouteChoiceScreen({
   onSelect,
   onViewDetail,
 }: RouteChoiceScreenProps) {
-  const [showReasonFor, setShowReasonFor] = useState<RouteId | null>(null);
   const shouldRecalculate = recalculation !== undefined;
   const {
     data: calculatedRoutes = [],
@@ -161,35 +159,6 @@ export function RouteChoiceScreen({
                   <p style={{ fontSize: 14 }} className="text-muted-foreground">Quay lại {doctorName}</p>
                 </div>
               </div>
-
-              {/* Stats */}
-              <div className="flex gap-4 py-3 border-t border-b border-border mb-3">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <MapPin size={14} />
-                  <span style={{ fontSize: 13 }}>{route.distance} m</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Layers size={14} />
-                  <span style={{ fontSize: 13 }}>
-                    {route.floorChanges === 0 ? "Không đổi tầng" : `Đổi tầng ${route.floorChanges} lần`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Reason */}
-              <button
-                onClick={() => setShowReasonFor(showReasonFor === route.id ? null : route.id)}
-                className="flex items-center gap-1.5 text-primary mb-3"
-                style={{ fontSize: 13 }}
-              >
-                <Info size={14} />
-                Vì sao thứ tự này?
-              </button>
-              {showReasonFor === route.id && (
-                <div className="bg-secondary rounded-lg p-3 mb-3">
-                  <p style={{ fontSize: 13 }} className="text-foreground leading-relaxed">{route.reason}</p>
-                </div>
-              )}
 
               {/* Action buttons */}
               <div className="flex flex-col gap-2">

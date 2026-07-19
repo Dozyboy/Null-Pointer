@@ -90,9 +90,20 @@ const order: ClinicalOrderDispatch = {
   },
 }
 
+const navigation = {
+  origin: 'Phòng khám PK-305',
+  originRoomCode: 'PK-305',
+  originFloor: 'Tầng 3',
+  destination: 'Phòng xét nghiệm 113',
+  destinationRoomCode: 'XN-113',
+  destinationFloor: 'Tầng 1',
+  travelMinutes: 4,
+}
+
 describe('DashboardScreen', () => {
   it('hiển thị hoạt động thật và không hiển thị timeline giả cũ', () => {
     const onOpenNotifications = vi.fn()
+    const onViewMap = vi.fn()
 
     render(
       <DashboardScreen
@@ -116,9 +127,10 @@ describe('DashboardScreen', () => {
         onRetryActivities={() => undefined}
         scheduleStrategy="balanced"
         currentStep={0}
+        navigation={navigation}
         onRegenerateJourney={() => undefined}
         onCompleteCurrentService={() => undefined}
-        onViewMap={() => undefined}
+        onViewMap={onViewMap}
         onOpenNotifications={onOpenNotifications}
       />,
     )
@@ -130,6 +142,22 @@ describe('DashboardScreen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Thông báo và hoạt động' }))
     expect(onOpenNotifications).toHaveBeenCalledOnce()
+
+    const tabs = within(screen.getByRole('tablist', { name: 'Nội dung lượt khám' }))
+      .getAllByRole('tab')
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      'Hôm nay',
+      'Chỉ định',
+      'Lịch trình',
+      'Đường đi',
+    ])
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Đường đi' }))
+    expect(screen.getByText('Các chặng đường cần đi')).toBeInTheDocument()
+    expect(screen.getByText('Đến Phòng xét nghiệm 113')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mở bản đồ chỉ đường' }))
+    expect(onViewMap).toHaveBeenCalledOnce()
   })
 
   it('đổi ưu tiên mới tạo lại lộ trình và nút hoàn thành chuyển bước sau xác nhận', () => {
@@ -146,6 +174,7 @@ describe('DashboardScreen', () => {
         scheduleStrategy="balanced"
         currentStep={0}
         routeOptionId="OPTION-TEST"
+        navigation={navigation}
         onRegenerateJourney={onRegenerateJourney}
         onCompleteCurrentService={onCompleteCurrentService}
         onViewMap={() => undefined}
@@ -153,7 +182,7 @@ describe('DashboardScreen', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Lịch trình' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Lịch trình' }))
 
     expect(screen.queryByText('Xem hành trình xét nghiệm')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xem đường đi' })).toBeInTheDocument()
@@ -174,6 +203,7 @@ describe('DashboardScreen', () => {
         scheduleStrategy="balanced"
         currentStep={1}
         routeOptionId="OPTION-TEST"
+        navigation={navigation}
         onRegenerateJourney={onRegenerateJourney}
         onCompleteCurrentService={onCompleteCurrentService}
         onViewMap={() => undefined}
@@ -186,7 +216,7 @@ describe('DashboardScreen', () => {
     expect(within(nextServiceCard!).getByText('Đang thực hiện')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('Đang ưu tiên').closest('button')!)
-    fireEvent.click(screen.getByRole('button', { name: /Ưu tiên thời gian vào khám/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Ưu tiên vào khám – làm dịch vụ sớm/ }))
 
     expect(onRegenerateJourney).toHaveBeenCalledWith('finish_early')
   })

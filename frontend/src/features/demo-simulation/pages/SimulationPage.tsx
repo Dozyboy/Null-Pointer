@@ -18,6 +18,7 @@ import {
   Plus,
   Radio,
   RefreshCw,
+  Route,
   Send,
   Settings2,
   Stethoscope,
@@ -45,12 +46,13 @@ import type {
   RoomStatus,
   SimulationSnapshot,
 } from '../model/simulation.schemas'
+import { IndoorMapEditorPanel } from '../components/IndoorMapEditorPanel'
 import './hospital-simulator.css'
 
 const simulationQueryKey = ['demo-simulation'] as const
 const catalogQueryKey = ['simulation-clinical-service-catalog'] as const
 const patientsQueryKey = ['patients'] as const
-type SimulatorTab = 'overview' | 'rooms' | 'orders'
+type SimulatorTab = 'overview' | 'rooms' | 'orders' | 'map'
 
 const patientGenderLabels: Record<PatientProfile['gender'], string> = {
   male: 'Nam',
@@ -156,7 +158,7 @@ export function SimulationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedTab = searchParams.get('tab')
   const activeTab: SimulatorTab =
-    requestedTab === 'rooms' || requestedTab === 'orders'
+    requestedTab === 'rooms' || requestedTab === 'orders' || requestedTab === 'map'
       ? requestedTab
       : 'overview'
   const [showRoomForm, setShowRoomForm] = useState(false)
@@ -240,11 +242,14 @@ export function SimulationPage() {
           <button className={activeTab === 'orders' ? 'is-active' : ''} onClick={() => switchTab('orders')}>
             <ClipboardList size={19} /> Bắn chỉ định
           </button>
+          <button className={activeTab === 'map' ? 'is-active' : ''} onClick={() => switchTab('map')}>
+            <Route size={19} /> Sơ đồ chỉ đường
+          </button>
           <Link to="/demo/hospital-data"><Settings2 size={19} /> Danh mục chỉ định</Link>
         </nav>
         <div className="sim-sidebar__note">
           <Radio size={16} />
-          <div><strong>API giả lập đang dùng</strong><span>Dữ liệu tách biệt với ứng dụng bệnh nhân</span></div>
+          <div><strong>API giả lập đang dùng</strong><span>Phòng, chỉ định và sơ đồ được dùng chung với ứng dụng bệnh nhân</span></div>
         </div>
       </aside>
 
@@ -256,6 +261,7 @@ export function SimulationPage() {
               {activeTab === 'overview' && 'Tổng quan vận hành'}
               {activeTab === 'rooms' && 'Quản lý phòng và hàng chờ'}
               {activeTab === 'orders' && 'Tạo và bắn chỉ định'}
+              {activeTab === 'map' && 'Cấu hình sơ đồ chỉ đường'}
             </h1>
           </div>
           <div className="sim-topbar__actions">
@@ -310,6 +316,10 @@ export function SimulationPage() {
             hasPatientsError={patientsQuery.isError}
             onRetryPatients={() => patientsQuery.refetch()}
           />
+        )}
+
+        {snapshot && activeTab === 'map' && (
+          <IndoorMapEditorPanel rooms={snapshot.rooms} />
         )}
       </section>
     </main>
@@ -737,7 +747,7 @@ function OrderPanel({
           <section className="sim-card">
             <div className="sim-card__heading"><div><small>BƯỚC 3</small><h2>Cách hệ thống xếp lộ trình</h2></div><Activity size={22} /></div>
             <div className="sim-form-grid">
-              <label><span>Kiểu xếp lịch trình</span><select value={payload.schedule_strategy} onChange={(event) => updateField('schedule_strategy', event.target.value as DispatchClinicalOrderPayload['schedule_strategy'])}><option value="balanced">Cân bằng</option><option value="finish_early">Ưu tiên thời gian vào khám</option><option value="leave_fast">Ưu tiên kết quả đến tay bác sĩ</option></select></label>
+              <label><span>Kiểu xếp lịch trình</span><select value={payload.schedule_strategy} onChange={(event) => updateField('schedule_strategy', event.target.value as DispatchClinicalOrderPayload['schedule_strategy'])}><option value="balanced">Cân bằng</option><option value="finish_early">Ưu tiên vào khám – làm dịch vụ sớm</option><option value="leave_fast">Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ</option></select></label>
             </div>
           </section>
           {formError && <p className="sim-message is-error" role="alert">{formError}</p>}

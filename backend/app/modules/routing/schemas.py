@@ -7,6 +7,11 @@ from app.shared.enums import RoutePriority
 
 
 class RouteLabel(StrEnum):
+    BALANCED = "balanced"
+    EARLY_SERVICE = "early_service"
+    DOCTOR_READY = "doctor_ready"
+
+    # Giữ các nhãn cũ để đọc được lộ trình đã lưu trước khi nâng cấp.
     RECOMMENDED = "recommended"
     LESS_WALK = "less_walk"
     LESS_CROWD = "less_crowd"

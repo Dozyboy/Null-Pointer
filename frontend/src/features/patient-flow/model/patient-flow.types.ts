@@ -2,7 +2,7 @@ import type { ScheduleStrategy } from '../../../entities/care-route/model/care-r
 
 export type { ScheduleStrategy }
 
-export type RouteId = 'recommended' | 'lessWalk' | 'lessCrowd'
+export type RouteId = 'balanced' | 'earlyService' | 'doctorReady'
 
 export type Priority =
   | 'system'
@@ -32,7 +32,10 @@ export interface Route {
   backendOptionId: string
   encounterId: string
   label: string
-  badge: 'KHUYẾN NGHỊ' | 'ÍT ĐI BỘ' | 'ÍT ĐÔNG'
+  badge:
+    | 'CÂN BẰNG'
+    | 'VÀO KHÁM – LÀM DỊCH VỤ SỚM'
+    | 'KẾT QUẢ ĐẾN BÁC SĨ SỚM'
   badgeColor: string
   duration: string
   steps: string[]

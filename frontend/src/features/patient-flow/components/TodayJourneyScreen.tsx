@@ -23,6 +23,7 @@ export function TodayJourneyScreen({
   const totalSteps = route.stepDetails.length;
   const currentStepData = route.stepDetails[currentStep] ?? route.stepDetails.at(-1);
   const isDoctorReturn = currentStepData?.serviceCode === "doctor_return";
+  const serviceName = currentStepData?.serviceName ?? "Dịch vụ đang được cập nhật";
   const roomName = currentStepData?.roomName ?? "Phòng đang được cập nhật";
   const floorInfo = currentStepData?.floor;
   const completedSteps = currentStep;
@@ -43,10 +44,12 @@ export function TodayJourneyScreen({
             <p style={{ fontSize: 11, letterSpacing: "0.08em" }} className="text-primary uppercase mb-1">
               Việc cần làm ngay
             </p>
-            <p style={{ fontSize: 18 }} className="text-foreground mb-0.5">Đi tới {roomName}</p>
-            {floorInfo && (
-              <p style={{ fontSize: 14 }} className="text-muted-foreground mb-3">{floorInfo}</p>
-            )}
+            <p style={{ fontSize: 18 }} className="text-foreground mb-1">
+              Thực hiện {serviceName}
+            </p>
+            <p style={{ fontSize: 14 }} className="text-muted-foreground mb-3">
+              Đi tới {roomName}{floorInfo ? ` · ${floorInfo}` : ""}
+            </p>
             <div className="flex items-center justify-between">
               <p style={{ fontSize: 13 }} className="text-muted-foreground">Di chuyển khoảng {currentStepData?.travelMinutes ?? 0} phút</p>
               <button

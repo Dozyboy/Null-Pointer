@@ -16,13 +16,13 @@ describe('PriorityScreen', () => {
 
     expect(container.querySelectorAll('button[aria-pressed]')).toHaveLength(3)
     expect(screen.getByText('Cân bằng')).toBeTruthy()
-    expect(screen.getByText('Ưu tiên thời gian vào khám')).toBeTruthy()
-    expect(screen.getByText('Ưu tiên kết quả đến tay bác sĩ')).toBeTruthy()
+    expect(screen.getByText('Ưu tiên vào khám – làm dịch vụ sớm')).toBeTruthy()
+    expect(screen.getByText('Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ')).toBeTruthy()
     expect(screen.queryByText('Ít đi bộ')).toBeNull()
     expect(screen.queryByText('Khu chờ ít đông')).toBeNull()
     expect(screen.queryByText('Hỗ trợ di chuyển')).toBeNull()
 
-    fireEvent.click(screen.getByText('Ưu tiên thời gian vào khám'))
+    fireEvent.click(screen.getByText('Ưu tiên vào khám – làm dịch vụ sớm'))
     const createButtons = screen.getAllByRole('button', { name: /Tạo phương án/ })
     fireEvent.click(createButtons.at(-1)!)
 

@@ -89,39 +89,41 @@ class DeterministicRoutingOptimizer:
                 "Không có phương án đáp ứng đầy đủ chỉ định với trạng thái phòng hiện tại."
             )
 
-        selectors = (
-            (RouteLabel.RECOMMENDED, request.priority),
-            (RouteLabel.LESS_WALK, RoutePriority.LESS_WALK),
-            (RouteLabel.LESS_CROWD, RoutePriority.LESS_CROWD),
+        label_by_strategy = {
+            ScheduleStrategy.BALANCED: RouteLabel.BALANCED,
+            ScheduleStrategy.FINISH_EARLY: RouteLabel.EARLY_SERVICE,
+            ScheduleStrategy.LEAVE_FAST: RouteLabel.DOCTOR_READY,
+        }
+        ordered_strategies = (
+            request.schedule_strategy,
+            *(
+                strategy
+                for strategy in ScheduleStrategy
+                if strategy != request.schedule_strategy
+            ),
         )
         selected: list[RankedCandidate] = []
-        selected_keys: set[str] = set()
 
-        for label, priority in selectors:
+        for strategy in ordered_strategies:
+            label = label_by_strategy[strategy]
             ranked = sorted(
                 candidates,
                 key=lambda candidate: (
-                    self._score(candidate, priority, request.schedule_strategy),
+                    self._score(candidate, request.priority, strategy),
                     candidate.key,
                 ),
             )
-            candidate = next(
-                (item for item in ranked if item.key not in selected_keys),
-                None,
-            )
-            if candidate is None:
-                continue
+            candidate = ranked[0]
 
-            selected_keys.add(candidate.key)
             selected.append(
                 RankedCandidate(
                     label=label,
                     candidate=candidate,
                     ranking_score=round(
-                        self._score(candidate, priority, request.schedule_strategy),
+                        self._score(candidate, request.priority, strategy),
                         3,
                     ),
-                    reason=self._build_reason(label, priority, request.schedule_strategy),
+                    reason=self._build_reason(label, request.priority, strategy),
                 )
             )
 
@@ -428,6 +430,26 @@ class DeterministicRoutingOptimizer:
         priority: RoutePriority,
         strategy: ScheduleStrategy,
     ) -> str:
+        strategy_reasons = {
+            ScheduleStrategy.BALANCED: (
+                "Cân bằng thời gian chờ, thời điểm có kết quả và việc di chuyển."
+            ),
+            ScheduleStrategy.FINISH_EARLY: (
+                "Ưu tiên đưa người bệnh vào khám và hoàn thành các dịch vụ sớm; "
+                "thời gian chờ gặp lại bác sĩ có thể dài hơn."
+            ),
+            ScheduleStrategy.LEAVE_FAST: (
+                "Ưu tiên hoàn thành dịch vụ và đưa đủ kết quả đến bác sĩ sớm "
+                "để người bệnh được gặp lại bác sĩ."
+            ),
+        }
+        if label in {
+            RouteLabel.BALANCED,
+            RouteLabel.EARLY_SERVICE,
+            RouteLabel.DOCTOR_READY,
+        }:
+            return strategy_reasons[strategy]
+
         if label == RouteLabel.LESS_WALK:
             return "Giảm quãng đường di chuyển và số lần đổi tầng trong toàn hành trình."
         if label == RouteLabel.LESS_CROWD:
@@ -440,7 +462,7 @@ class DeterministicRoutingOptimizer:
             RoutePriority.LESS_CROWD: "Ưu tiên khu chờ ít đông hơn.",
             RoutePriority.ACCESSIBLE: "Ưu tiên hành trình phù hợp nhu cầu hỗ trợ di chuyển.",
         }
-        strategy_reasons = {
+        legacy_strategy_reasons = {
             ScheduleStrategy.BALANCED: (
                 " Hệ thống cân bằng hàng chờ, thời gian di chuyển "
                 "và thời điểm có kết quả."
@@ -454,4 +476,4 @@ class DeterministicRoutingOptimizer:
                 "để chẩn đoán sớm nhất."
             ),
         }
-        return priority_reasons[priority] + strategy_reasons[strategy]
+        return priority_reasons[priority] + legacy_strategy_reasons[strategy]

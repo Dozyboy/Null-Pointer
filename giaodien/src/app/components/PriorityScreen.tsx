@@ -1,4 +1,4 @@
-import { ChevronRight, Check, Zap, Footprints, Users, Accessibility, Sliders } from "lucide-react";
+import { ChevronRight, Check, Zap, Sliders } from "lucide-react";
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 
@@ -18,37 +18,25 @@ const options: {
 }[] = [
   {
     id: "system",
-    label: "Để hệ thống đề xuất",
-    description: "Cân bằng thời gian, di chuyển và độ ổn định",
+    label: "Cân bằng",
+    description: "Cân bằng thời gian chờ, thời điểm có kết quả và việc di chuyển",
     icon: <Sliders size={22} />,
   },
   {
     id: "fastest",
-    label: "Hoàn tất sớm",
-    description: "Ưu tiên tổng thời gian từ bây giờ đến khi quay lại bác sĩ",
+    label: "Ưu tiên vào khám – làm dịch vụ sớm",
+    description: "Ưu tiên được tiếp nhận và hoàn thành các dịch vụ sớm; có thể chờ gặp lại bác sĩ lâu hơn",
     icon: <Zap size={22} />,
   },
   {
-    id: "lessWalk",
-    label: "Ít đi bộ",
-    description: "Ưu tiên cùng tầng, gần thang máy và quãng đường ngắn",
-    icon: <Footprints size={22} />,
-  },
-  {
     id: "lessCrowd",
-    label: "Khu chờ ít đông",
-    description: "Ưu tiên nơi có số người chờ dự kiến thấp hơn",
-    icon: <Users size={22} />,
-  },
-  {
-    id: "accessible",
-    label: "Hỗ trợ di chuyển",
-    description: "Chỉ dùng tuyến có lối phù hợp xe lăn hoặc hỗ trợ đã đăng ký",
-    icon: <Accessibility size={22} />,
+    label: "Ưu tiên làm xong, có kết quả đến tay bác sĩ sớm để gặp lại bác sĩ",
+    description: "Sắp xếp để hoàn thành dịch vụ, có đủ kết quả và gặp lại bác sĩ sớm nhất",
+    icon: <Check size={22} />,
   },
 ];
 
-export function PriorityScreen({ onBack, onContinue, onUpdateAccessibility }: PriorityScreenProps) {
+export function PriorityScreen({ onBack, onContinue }: PriorityScreenProps) {
   const [selected, setSelected] = useState<Priority>("fastest");
 
   return (
@@ -63,7 +51,7 @@ export function PriorityScreen({ onBack, onContinue, onUpdateAccessibility }: Pr
       />
 
       <div className="flex flex-col gap-3 px-4 pt-4 pb-6">
-        <p style={{ fontSize: 15 }} className="text-foreground">Điều gì quan trọng nhất với bạn?</p>
+        <p style={{ fontSize: 15 }} className="text-foreground">Bạn muốn hệ thống sắp lịch trình theo cách nào?</p>
 
         {options.map((opt) => {
           const isSelected = selected === opt.id;

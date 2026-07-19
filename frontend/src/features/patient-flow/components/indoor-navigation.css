@@ -1,0 +1,162 @@
+.indoor-map-shell {
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #e8edf3;
+}
+.indoor-map-shell.is-compact {
+  min-height: 220px;
+}
+
+.indoor-map-tools {
+  position: absolute;
+  z-index: 12;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  box-shadow: 0 4px 15px #17203325;
+}
+
+.indoor-map-tools button {
+  display: grid;
+  width: 38px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--primary);
+  background: rgb(255 255 255 / 94%);
+}
+
+.indoor-map-tools button:last-child {
+  border-bottom: 0;
+}
+
+.indoor-map-tools svg {
+  width: 17px;
+}
+
+.indoor-transform-wrapper {
+  width: 100% !important;
+  height: 320px !important;
+}
+
+.is-compact .indoor-transform-wrapper {
+  height: 240px !important;
+}
+
+.indoor-transform-content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.indoor-map-stage {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+}
+
+.indoor-floor-map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.indoor-route-overlay {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.indoor-route-border,
+.indoor-route-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.indoor-route-border {
+  stroke: white;
+  stroke-width: 10;
+}
+
+.indoor-route-line {
+  stroke: var(--primary);
+  stroke-width: 6;
+  stroke-dasharray: 12 7;
+}
+
+.indoor-route-destination {
+  fill: #dc2626;
+  stroke: white;
+  stroke-width: 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.indoor-destination-pulse {
+  fill: rgb(220 38 38 / 20%);
+  animation: indoor-destination-pulse 1.8s ease-in-out infinite;
+}
+
+.indoor-user-marker {
+  position: absolute;
+  z-index: 8;
+  transform: translate(-50%, -50%);
+}
+
+.indoor-blue-dot {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 4px solid white;
+  border-radius: 50%;
+  background: #1a73e8;
+  box-shadow: 0 1px 7px #0008;
+}
+
+.indoor-accuracy-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 62px;
+  height: 62px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgb(26 115 232 / 16%);
+  animation: indoor-location-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes indoor-location-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.82);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes indoor-destination-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
