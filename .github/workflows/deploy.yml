@@ -54,12 +54,13 @@ jobs:
           region: ${{ env.REGION }}
           flags: '--allow-unauthenticated --port=8010' # Ép cổng 8010 trùng khớp với Dockerfile của AI
 
-      # 4. BUILD & DEPLOY DỊCH VỤ BACKEND
-      - name: Build and Push Backend Image
-        run: |
-          docker build -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/backend-service:${{ github.sha }} ./backend
-          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/backend-service:${{ github.sha }}
+      # # 4. BUILD & DEPLOY DỊCH VỤ BACKEND
+      # - name: Build and Push Backend Image
+      #   run: |
+      #     docker build -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/backend-service:${{ github.sha }} ./backend
+      #     docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/backend-service:${{ github.sha }}
 
+      # 4. BUILD & DEPLOY DỊCH VỤ BACKEND
       - name: Deploy Backend to Cloud Run
         id: deploy-backend
         uses: google-github-actions/deploy-cloudrun@v2
@@ -72,7 +73,7 @@ jobs:
             APP_ENV=production
             DATABASE_URL=sqlite:////tmp/nhip_vien.db
             CORS_ORIGINS=["https://clinic-flow.live","https://www.clinic-flow.live"]
-          flags: '--allow-unauthenticated --port=8000'
+          flags: '--allow-unauthenticated --port=8000 --env-vars-update-strategy=replace'
       # 5. BUILD & DEPLOY DỊCH VỤ FRONTEND
       # Cần URL của backend vừa deploy để build static assets cho React
       - name: Build and Push Frontend Image
