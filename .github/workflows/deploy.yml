@@ -70,9 +70,10 @@ jobs:
           env_vars: |
             AI_SERVICE_URL=${{ steps.deploy-ai.outputs.url }}
             APP_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL || 'sqlite:///./nhip_vien.db' }}
+            DATABASE_URL=sqlite:////tmp/nhip_vien.db
             CORS_ORIGINS=https://clinic-flow.live,https://www.clinic-flow.live
           flags: '--allow-unauthenticated --port=8000' # Ép cả hạ tầng lẫn container chạy chung cổng 8000
+
       # 5. BUILD & DEPLOY DỊCH VỤ FRONTEND
       # Cần URL của backend vừa deploy để build static assets cho React
       - name: Build and Push Frontend Image
