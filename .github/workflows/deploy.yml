@@ -73,7 +73,8 @@ jobs:
             APP_ENV=production
             DATABASE_URL=sqlite:////tmp/nhip_vien.db
             CORS_ORIGINS=["https://clinic-flow.live","https://www.clinic-flow.live"]
-          flags: '--allow-unauthenticated --port=8000 --env-vars-update-strategy=replace'
+          flags: '--allow-unauthenticated --port=8000'
+          env_vars_update_strategy: 'replace'
       # 5. BUILD & DEPLOY DỊCH VỤ FRONTEND
       # Cần URL của backend vừa deploy để build static assets cho React
       - name: Build and Push Frontend Image
