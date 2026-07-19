@@ -6,6 +6,7 @@ import {
   MapPin,
   Navigation,
 } from 'lucide-react'
+import type { IndoorNavigationGraph } from '../../../entities/indoor-navigation/model/indoor-navigation.schemas'
 import { AppHeader } from './AppHeader'
 import { IndoorNavigationPanel } from './IndoorNavigationPanel'
 import { ServiceCompletionDialog } from './ServiceCompletionDialog'
@@ -18,6 +19,7 @@ interface MapScreenProps {
   destinationRoomCode?: string
   floor: string
   travelMinutes: number
+  navigationGraph?: IndoorNavigationGraph
   onServiceCompleted: () => void
   onBack: () => void
 }
@@ -29,6 +31,7 @@ export function MapScreen({
   destinationRoomCode,
   floor,
   travelMinutes,
+  navigationGraph,
   onServiceCompleted,
   onBack,
 }: MapScreenProps) {
@@ -59,6 +62,7 @@ export function MapScreen({
           destinationName={destination}
           destinationRoomCode={destinationRoomCode}
           destinationFloor={floor}
+          navigationGraph={navigationGraph}
         />
 
         <div className="rounded-xl border border-border bg-card p-4">

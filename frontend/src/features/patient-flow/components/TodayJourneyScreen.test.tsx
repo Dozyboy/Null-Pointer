@@ -20,7 +20,7 @@ const route: Route = {
     {
       id: 'step-1',
       serviceCode: 'blood_test',
-      serviceName: 'Xét nghiệm máu',
+      serviceName: 'Miễn dịch / Nội tiết',
       roomCode: 'XN-113',
       roomName: 'Phòng xét nghiệm máu 113',
       floor: 'Tầng 1',
@@ -55,6 +55,8 @@ describe('TodayJourneyScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tôi đã khám xong' }))
 
     expect(onStepDone).not.toHaveBeenCalled()
+    expect(screen.getByText('Thực hiện Miễn dịch / Nội tiết')).toBeVisible()
+    expect(screen.getByText('Đi tới Phòng xét nghiệm máu 113 · Tầng 1')).toBeVisible()
     expect(screen.getAllByText('Phòng xét nghiệm máu 113', { exact: false })).toHaveLength(2)
 
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận đã khám xong' }))

@@ -19,6 +19,7 @@ import { getLatestPatientOrder } from "../../../entities/clinical-order/api/clin
 import { getPatient } from "../../../entities/patient/api/patient-api";
 import { getTodayPatientActivities } from "../../../entities/patient/api/patient-activity-api";
 import type { PatientProfile } from "../../../entities/patient/model/patient.schemas";
+import { getIndoorNavigationGraph } from "../../../entities/indoor-navigation/api/indoor-navigation-api";
 import {
   getLatestPatientReservation,
   mapClinicalOrderRoutes,
@@ -186,6 +187,12 @@ export default function PatientFlowPage() {
     enabled: Boolean(patientCode),
     retry: false,
     refetchInterval: 3_000,
+  });
+  const indoorNavigationQuery = useQuery({
+    queryKey: ["indoor-navigation-graph"],
+    queryFn: getIndoorNavigationGraph,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
   const patientProfile = patientCode ? patientQuery.data : undefined;
   const patientOrder = patientCode ? patientOrderQuery.data : undefined;
@@ -367,6 +374,16 @@ export default function PatientFlowPage() {
             scheduleStrategy={scheduleStrategy}
             currentStep={displayedJourneyStep}
             routeOptionId={navigationRoute?.backendOptionId}
+            navigation={{
+              origin: directionOrigin,
+              originRoomCode: directionOriginRoomCode,
+              originFloor: directionOriginFloor,
+              destination: currentDestination,
+              destinationRoomCode: currentStepDetail?.roomCode,
+              destinationFloor: currentFloor,
+              travelMinutes: currentStepDetail?.travelMinutes ?? 0,
+              navigationGraph: indoorNavigationQuery.data,
+            }}
             onRegenerateJourney={(strategy) => {
               setScheduleStrategy(strategy);
               setIsRegeneratingJourney(true);
@@ -389,6 +406,7 @@ export default function PatientFlowPage() {
             destinationRoomCode={currentStepDetail?.roomCode}
             floor={currentFloor}
             travelMinutes={currentStepDetail?.travelMinutes ?? 0}
+            navigationGraph={indoorNavigationQuery.data}
             onServiceCompleted={handleStepDone}
             onBack={() => nav("dashboard")}
           />
@@ -523,6 +541,7 @@ export default function PatientFlowPage() {
             roomCode={currentStepDetail?.roomCode}
             floor={currentFloor}
             distance={currentDistance}
+            navigationGraph={indoorNavigationQuery.data}
             onServiceCompleted={handleStepDone}
             onBack={() => nav(prevScreen)}
           />

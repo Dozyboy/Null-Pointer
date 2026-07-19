@@ -164,7 +164,9 @@ describe('PatientFlowPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Hành trình hôm nay' }),
     ).toBeInTheDocument()
-    expect(screen.getByText('Đi tới Phòng lấy máu 113')).toBeInTheDocument()
+    expect(
+      screen.getByText('Đi tới Phòng lấy máu 113 · Tầng 1'),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 

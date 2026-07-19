@@ -14,6 +14,7 @@ import {
   Timer,
   Loader2,
   Bell,
+  Navigation,
 } from "lucide-react";
 import type { ScheduleStrategy } from "../model/patient-flow.types";
 import type {
@@ -21,6 +22,10 @@ import type {
   ClinicalOrderItem,
 } from "../../../entities/clinical-order/model/clinical-order.schemas";
 import type { PatientActivity } from "../../../entities/patient/model/patient-activity.schemas";
+import {
+  MovementRouteTab,
+  type MovementRouteTabData,
+} from "./MovementRouteTab";
 import { ServiceCompletionDialog } from "./ServiceCompletionDialog";
 
 interface DashboardScreenProps {
@@ -32,18 +37,20 @@ interface DashboardScreenProps {
   scheduleStrategy: ScheduleStrategy;
   currentStep: number;
   routeOptionId?: string;
+  navigation: MovementRouteTabData;
   onRegenerateJourney: (strategy: ScheduleStrategy) => void;
   onCompleteCurrentService: () => void;
   onViewMap: () => void;
   onOpenNotifications: () => void;
 }
 
-type MenuTab = "today" | "orders" | "schedule";
+type MenuTab = "today" | "orders" | "schedule" | "directions";
 
 const menuTabs: { id: MenuTab; label: string; icon: React.ReactNode }[] = [
   { id: "today", label: "Hôm nay", icon: <Activity size={18} /> },
   { id: "orders", label: "Chỉ định", icon: <ClipboardList size={18} /> },
   { id: "schedule", label: "Lịch trình", icon: <LayoutList size={18} /> },
+  { id: "directions", label: "Đường đi", icon: <Navigation size={18} /> },
 ];
 
 const orderItemIcons: Record<ClinicalOrderItem["room_service_type"], string> = {
@@ -96,6 +103,7 @@ export function DashboardScreen({
   scheduleStrategy,
   currentStep,
   routeOptionId,
+  navigation,
   onRegenerateJourney,
   onCompleteCurrentService,
   onViewMap,
@@ -165,27 +173,39 @@ export function DashboardScreen({
         </div>
 
         {/* ── Tab menu ── */}
-        <div className="flex overflow-x-auto px-4 gap-1 pb-0" style={{ scrollbarWidth: "none" }}>
+        <div
+          className="grid grid-cols-4 gap-1 px-2 pb-0"
+          role="tablist"
+          aria-label="Nội dung lượt khám"
+        >
           {menuTabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`dashboard-panel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl whitespace-nowrap flex-shrink-0 transition-colors ${
+              className={`flex min-w-0 items-center justify-center gap-1 rounded-t-xl px-1 py-2.5 whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? "bg-background text-primary"
                   : "text-white/70 hover:text-white hover:bg-white/10"
               }`}
-              style={{ fontSize: 14, minHeight: 44 }}
+              style={{ fontSize: 12, minHeight: 44 }}
             >
               {tab.icon}
-              {tab.label}
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* ── Tab content ── */}
-      <div className="flex-1 overflow-y-auto">
+      <div
+        id={`dashboard-panel-${activeTab}`}
+        role="tabpanel"
+        className="flex-1 overflow-y-auto"
+      >
         {activeTab === "today" && (
           <TodayTab
             order={order}
@@ -207,6 +227,9 @@ export function DashboardScreen({
             onCompleteCurrentService={onCompleteCurrentService}
             onViewMap={onViewMap}
           />
+        )}
+        {activeTab === "directions" && (
+          <MovementRouteTab {...navigation} onViewMap={onViewMap} />
         )}
       </div>
     </div>
